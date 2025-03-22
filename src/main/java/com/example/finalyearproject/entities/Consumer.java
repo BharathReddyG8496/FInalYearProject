@@ -1,11 +1,14 @@
 package com.example.finalyearproject.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 
 @Entity
-@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Consumer {
     @Id
     @GeneratedValue
@@ -16,5 +19,8 @@ public class Consumer {
     @Column(unique = true)
     private int Phone;
     private String Address;
+    @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
+    private Rating rating;
+
 
 }

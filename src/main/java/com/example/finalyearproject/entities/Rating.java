@@ -1,11 +1,14 @@
 package com.example.finalyearproject.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 @Entity
-@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Rating {
     @Id
     @GeneratedValue
@@ -14,6 +17,7 @@ public class Rating {
     private int FarmerId;
     private int Score;
     private String Comment;
+    @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime timestamp;
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "ConsumerId")
