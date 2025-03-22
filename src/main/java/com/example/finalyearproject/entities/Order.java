@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -26,9 +28,15 @@ public class Order {
 
     @NotNull(message = "Amount can not be null")
     @Positive
-    private Double TotalAmount;
+    private double TotalAmount;
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "ConsumerId",insertable = false,updatable = false)
     private Consumer consumer;
+
+    @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
+    private List<OrderItem> orderItems;
+
+    @OneToMany(mappedBy="order",cascade = CascadeType.ALL)
+    private Delivery delivery;
 }

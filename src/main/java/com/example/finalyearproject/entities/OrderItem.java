@@ -30,10 +30,14 @@ public class OrderItem {
 
     @NotNull(message = "UnitPrice cannot be null")
     @Positive
-    private Double UnitPrice;
+    private double UnitPrice;
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "ProductId",insertable = false,updatable = false)
+    private Product product;
 
 }
