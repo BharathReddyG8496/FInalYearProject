@@ -42,4 +42,7 @@ public class Consumer {
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations;
+
+    @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
+    private List<Order> order;
 }
