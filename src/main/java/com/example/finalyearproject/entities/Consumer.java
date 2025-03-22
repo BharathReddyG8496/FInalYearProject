@@ -24,9 +24,9 @@ public class Consumer {
     @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
     private List<Rating> rating;
     @OneToMany(mappedBy = "ConsumerId")
-    private ChatSession chatSession;
+    private List<ChatSession> chatSession;
     @OneToMany(mappedBy = "consumer")
-    private Donation donation;
+    private List<Donation> donation;
 
 
 }
