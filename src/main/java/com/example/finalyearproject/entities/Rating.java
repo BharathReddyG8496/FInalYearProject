@@ -2,7 +2,6 @@ package com.example.finalyearproject.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,6 +27,7 @@ public class Rating {
     @Max(value = 5, message = "Score cannot exceed 5")
     private int Score;
 
+    @NotBlank(message = "Comment cannot be null")
     @Size(max = 500, message = "Comment cannot exceed 500 characters")
     private String Comment;
 
@@ -37,4 +37,9 @@ public class Rating {
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
     private Consumer consumer;
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
+    private Farmer farmer;
+
 }

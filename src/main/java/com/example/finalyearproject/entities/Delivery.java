@@ -1,7 +1,9 @@
 package com.example.finalyearproject.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,8 +27,8 @@ public class Delivery {
     @NotNull(message = "Status cannot be null")
     private String Status;
 
-    @NotNull(message = "DeliveryAddress cannot be null")
-    @Column(length = 50)
+    @NotBlank(message = "DeliveryAddress cannot be null")
+    @Size(max = 255,message = "Limited to 255 char")
     private String DeliveryAddress;
 
     @NotNull(message = "Date cannot be null")

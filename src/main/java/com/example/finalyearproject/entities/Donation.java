@@ -2,7 +2,6 @@ package com.example.finalyearproject.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,4 +38,9 @@ public class Donation {
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
     private Consumer consumer;
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
+    private Farmer farmer;
+
 }
