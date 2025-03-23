@@ -1,5 +1,6 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
@@ -27,22 +29,24 @@ public class Consumer {
     private String Email;
 
     @NotNull(message = "Phone number cannot be null")
-    @Min(value = 1000000000, message = "Phone number must be at least 10 digits")
-    @Max(value = 9999999999L, message = "Phone number cannot exceed 10 digits")
-    @Column(unique = true)
+    @Pattern(regexp = "\\+\\{12}")
+//    @Column(unique = true)
     private int Phone;
 
     @NotBlank(message = "Address cannot be blank")
     @Size(max = 255, message = "Address cannot exceed 255 characters")
     private String Address;
 
-    @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Rating> ratings;
+    @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Rating> ratings;
 
 
-    @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Donation> donations;
+    @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Donation> donations;
 
-    @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
-    private List<Order> order;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<Order> order;
 }

@@ -1,5 +1,6 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -18,26 +19,28 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int OrderItemId;
 
-    @NotNull
-    private int OrderId;
+//    @NotNull
+//    private int OrderId;
 
     @NotNull(message = "Quantity cannot be null")
     @Positive
     private int Quantity;
 
-    @NotNull(message = "ProductId cannot be null")
-    private int ProductId;
+//    @NotNull(message = "ProductId cannot be null")
+//    private int ProductId;
 
     @NotNull(message = "UnitPrice cannot be null")
     @Positive
     private double UnitPrice;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "ProductId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "ProductId",insertable = false,updatable = false)
     private Product product;
 
 }

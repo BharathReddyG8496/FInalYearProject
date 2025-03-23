@@ -1,16 +1,15 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @AllArgsConstructor
@@ -31,20 +30,24 @@ public class Farmer {
 
     @NotNull(message = "Phone number cannot be null")
     @Column(unique = true)
+    @Pattern(regexp = "\\+\\{12}")
     private int Phone;
 
     @NotBlank(message = "Address cannot be null")
     @Size(max = 255)
     private String Address;
 
-    @OneToMany(mappedBy = "farmer",cascade = CascadeType.ALL)
-    private List<Rating> rating;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<Rating> rating;
 
-    @OneToMany(mappedBy = "farmer",cascade = CascadeType.ALL)
-    private List<Donation> donation;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<Donation> donation;
 
-    @OneToMany(mappedBy = "farmer",cascade = CascadeType.ALL)
-    private List<Product> product;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<Product> product;
 
 
 

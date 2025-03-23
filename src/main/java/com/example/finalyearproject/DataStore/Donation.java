@@ -1,5 +1,6 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -17,11 +18,11 @@ public class Donation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DonationId;
 
-    @NotNull(message = "Consumer ID cannot be null")
-    private int ConsumerId;
-
-    @NotNull(message = "Farmer ID cannot be null")
-    private int FarmerId;
+//    @NotNull(message = "Consumer ID cannot be null")
+//    private int ConsumerId;
+//
+//    @NotNull(message = "Farmer ID cannot be null")
+//    private int FarmerId;
 
     @NotNull(message = "Donation amount cannot be null")
     @Positive(message = "Donation amount must be positive")
@@ -35,12 +36,14 @@ public class Donation {
     @Size(max = 50, message = "Payment method cannot exceed 50 characters")
     private String PaymentMethod;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
     private Consumer consumer;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 
 }
