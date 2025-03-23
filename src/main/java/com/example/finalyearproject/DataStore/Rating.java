@@ -1,5 +1,6 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -16,11 +17,19 @@ public class Rating {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int RatingId;
 
-    @NotNull(message = "Consumer ID cannot be null")
-    private int ConsumerId;
+    /*
+    As these two attributes are FK, no need to specify it explicitly.
+    The Framework will create FK on its own, at that case these below provided
+    attributes might cause redundancy.
 
-    @NotNull(message = "Farmer ID cannot be null")
-    private int FarmerId;
+    This(your approach) has to be done in case when the Framework is following lot more
+    Bare metal approach.
+     */
+//    @NotNull(message = "Consumer ID cannot be null")
+//    private int ConsumerId;
+//
+//    @NotNull(message = "Farmer ID cannot be null")
+//    private int FarmerId;
 
     @NotNull(message = "Score cannot be null")
     @Min(value = 1, message = "Score must be at least 1")
@@ -34,12 +43,14 @@ public class Rating {
     @PastOrPresent(message = "Timestamp must be in the past or present")
     private LocalDateTime timestamp;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
     private Consumer consumer;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 
 }

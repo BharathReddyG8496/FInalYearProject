@@ -1,5 +1,7 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +11,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Set;
 
 @Entity
 @Getter
@@ -20,8 +24,8 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int ProductId;
 
-    @NotNull(message = "cannot be null")
-    private int FarmerId;
+//    @NotNull(message = "cannot be null")
+//    private int FarmerId;
 
     @NotBlank(message = "Product name cannot be null")
     @Column(length = 100)
@@ -40,11 +44,13 @@ public class Product {
     @Min(value = 0)
     private int Stock;
 
-    @OneToMany(mappedBy = "product",cascade = CascadeType.ALL)
-    private OrderItem orderItem;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<OrderItem> orderItem;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name="FarmerId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name="FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 
 

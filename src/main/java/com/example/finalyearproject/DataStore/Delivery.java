@@ -1,5 +1,6 @@
-package com.example.finalyearproject.entities;
+package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +21,7 @@ public class Delivery {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DeliveryId;
 
-    private int OrderId;
+//    private int OrderId;
     @NotNull(message = "DeliveryMethod cannot be null")
     private String DeliveryMethod;
 
@@ -35,7 +36,8 @@ public class Delivery {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime DeliveryDate;
 
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
+    @ManyToOne()
+    @JsonBackReference
+//    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
 }
