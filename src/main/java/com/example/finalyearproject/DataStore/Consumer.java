@@ -21,46 +21,46 @@ import java.util.Set;
 public class Consumer implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int ConsumerId;
+    private int consumerId;
 
     @NotBlank(message = "First Name cannot be blank")
-    private String ConsumerFirstName;
-    private String ConsumerLastName;
+    private String consumerFirstName;
+    private String consumerLastName;
 
     @NotNull(message = "UserName cannot be blank")
-    private String ConsumerName;
-    private String ConsumerPassword;
+    private String consumerName;
+    private String consumerPassword;
 
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
     @Column(unique = true)
-    private String ConsumerEmail;
+    private String consumerEmail;
 
     @NotNull(message = "Phone number cannot be null")
     @Pattern(regexp = "\\+\\{12}")
     @Column(unique = true)
-    private int ConsumerPhone;
+    private int consumerPhone;
 
     @NotBlank(message = "Address cannot be blank")
     @Size(max = 255, message = "Address cannot exceed 255 characters")
-    private String ConsumerAddress;
+    private String consumerAddress;
 
     @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
-    private Set<Rating> ConsumerRatings;
+    private Set<Rating> consumerRatings;
 
 
     @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
-    private Set<Donation> ConsumerDonations;
+    private Set<Donation> consumerDonations;
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL)
     @JsonManagedReference
-    private Set<Order> ConsumerOrder;
+    private Set<Order> consumerOrder;
 
     @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
     @JsonManagedReference
-    private Set<DeliveryAddresses> SetOfDeliveryAddress;
+    private Set<DeliveryAddresses> setOfDeliveryAddress;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -69,12 +69,12 @@ public class Consumer implements UserDetails {
 
     @Override
     public String getPassword() {
-        return this.ConsumerPassword;
+        return this.consumerPassword;
     }
 
     @Override
     public String getUsername() {
-        return this.ConsumerName;
+        return this.consumerName;
     }
 
     @Override

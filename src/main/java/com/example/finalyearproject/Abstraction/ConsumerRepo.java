@@ -9,11 +9,12 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.Set;
 
+@Repository
 @EnableJpaRepositories
 public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     public Consumer findConsumerByConsumerId(int id);
     public Consumer updateConsumerByConsumerId(Consumer consumer,int id);
-    public Optional<Consumer> findConsumerByConsumerName(String ConsumerName);
+    public Optional<Consumer> findByConsumerName(String consumerName);
 //    public Set<DeliveryAddresses> addDeliv
 }

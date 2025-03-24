@@ -23,7 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 @Configuration
-@EnableWebSecurity
+//@EnableWebSecurity
 public class SecurityConfig{
 
     @Autowired
@@ -31,8 +31,8 @@ public class SecurityConfig{
     @Autowired
     private JwtAuthenticationFilter filter;
 
-    @Autowired
-    private UserDetailsService userDetailService;
+//    @Autowired
+//    private UserDetailsService userDetailService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -57,7 +57,7 @@ public class SecurityConfig{
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+//        http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -69,7 +69,7 @@ public class SecurityConfig{
      @Bean
      public DaoAuthenticationProvider daoAuthenticationProvider(){
          DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-         daoAuthenticationProvider.setUserDetailsService(userDetailService);
+//         daoAuthenticationProvider.setUserDetailsService(userDetailService);
          daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
          return daoAuthenticationProvider;
      }
