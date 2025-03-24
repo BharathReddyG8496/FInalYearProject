@@ -1,6 +1,7 @@
 package com.example.finalyearproject.DataStore;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Delivery {
+public class DeliveryAddresses {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DeliveryId;
@@ -36,8 +37,11 @@ public class Delivery {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime DeliveryDate;
 
-    @ManyToOne()
+    @ManyToOne
     @JsonBackReference
-//    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
+    private Consumer consumer;
+
+    @OneToOne
+    @JsonManagedReference
     private Order order;
 }

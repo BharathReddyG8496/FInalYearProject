@@ -3,15 +3,12 @@ package com.example.finalyearproject.DataStore;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -43,7 +40,7 @@ public class Order {
     @JsonManagedReference
     private Set<OrderItem> orderItems;
 
-    @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private Set<Delivery> delivery;
+    @OneToOne
+    @JsonBackReference
+    private DeliveryAddresses deliveryAddress;
 }
