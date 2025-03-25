@@ -14,7 +14,7 @@ import java.util.Set;
 public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     public Consumer findConsumerByConsumerId(int id);
-    public Consumer updateConsumerByConsumerId(Consumer consumer,int id);
+//    public Consumer updateByConsumerId(Consumer consumer,int id);
     public Optional<Consumer> findByConsumerName(String consumerName);
 //    public Set<DeliveryAddresses> addDeliv
 }
