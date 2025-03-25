@@ -20,7 +20,8 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
     @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName} where consumerId=:#{#id}",nativeQuery = true)
     public void updateConsumerByconsumerId(Consumer consumer,int id);
 
-
     public Optional<Consumer> findByConsumerName(String consumerName);
+
+
 //    public Set<DeliveryAddresses> addDeliv
 }

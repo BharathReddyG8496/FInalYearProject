@@ -31,8 +31,8 @@ public class SecurityConfig{
     @Autowired
     private JwtAuthenticationFilter filter;
 
-//    @Autowired
-//    private UserDetailsService userDetailService;
+    @Autowired
+    private UserDetailsService userDetailService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -45,19 +45,14 @@ public class SecurityConfig{
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/create-consumer").permitAll()
                         .requestMatchers("/test").authenticated()
-                        .requestMatchers("/user/auth/login-user").permitAll()
-                        .requestMatchers("/user/verify/verify-account").permitAll()
-                        .requestMatchers("/user/verify/regenerate-otp").permitAll()
-                        .requestMatchers("/user/verify/set-password").permitAll()
-                        .requestMatchers("/user/verify/forgot-password").permitAll()
-                        .requestMatchers("/user/auth/create-user").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-//        http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -69,14 +64,10 @@ public class SecurityConfig{
      @Bean
      public DaoAuthenticationProvider daoAuthenticationProvider(){
          DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-//         daoAuthenticationProvider.setUserDetailsService(userDetailService);
+         daoAuthenticationProvider.setUserDetailsService(userDetailService);
          daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
          return daoAuthenticationProvider;
      }
-//     @Bean
-//   public PasswordEncoder passwordEncoder(){
-//       return new BCryptPasswordEncoder();
-//   }
 
 
     @Bean
