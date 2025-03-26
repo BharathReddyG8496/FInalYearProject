@@ -21,6 +21,11 @@ public class ConsumerService {
         return consumerRepo.save(consumer);
     }
 
+    public void UpdateConsumer(Consumer consumer){
+        consumerRepo.updateConsumerByconsumerId(consumer, consumer.getConsumerId());
+
+    }
+
 
 
 
