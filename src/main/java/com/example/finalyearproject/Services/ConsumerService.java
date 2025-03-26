@@ -7,6 +7,7 @@ import com.example.finalyearproject.DataStore.DeliveryAddresses;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -21,10 +22,13 @@ public class ConsumerService {
     @Autowired
     private DeliveryAddressesRepo deliveryAddressesRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     public Consumer RegisterConsumer(@Valid Consumer consumer) {
 
-//        consumer.setConsumerPassword(passwordEncoder.encode(consumer.getConsumerPassword()));
+        consumer.setConsumerPassword(passwordEncoder.encode(consumer.getConsumerPassword()));
         return consumerRepo.save(consumer);
     }
 

@@ -1,9 +1,12 @@
 package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
+import com.example.finalyearproject.DataStore.Farmer;
 import com.example.finalyearproject.Model.JwtRequest;
 import com.example.finalyearproject.Model.JwtResponse;
 import com.example.finalyearproject.Security.JwtHelper;
+import com.example.finalyearproject.Services.FarmerService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +32,18 @@ public class FarmerController {
 
     @Autowired
     private AuthenticationManager manager;
+
+    @Autowired
+    private FarmerService farmerService;
+
+    @PostMapping("/register-farmer")
+    public ResponseEntity<Farmer> RegisterFarmer(@RequestBody Farmer farmer){
+        if(farmer==null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok(this.farmerService.RegisterFarmer(farmer));
+    }
+
     @RequestMapping(value = "/login-farmer",method = {RequestMethod.POST,RequestMethod.GET})
     public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
 
@@ -50,6 +65,9 @@ public class FarmerController {
                 .userName(userName).build();
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+
+
 
     private void doAuthenticate(String userEmail, String password) {
 
