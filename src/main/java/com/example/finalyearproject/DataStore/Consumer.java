@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.hibernate.validator.constraints.UniqueElements;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 //import org.springframework.security.core.GrantedAuthority;
@@ -37,6 +38,7 @@ public class Consumer implements UserDetails {
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
     @Column(unique = true)
+    @UniqueElements
     private String consumerEmail;
 
     @NotNull(message = "Phone number cannot be null")

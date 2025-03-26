@@ -17,11 +17,18 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     public Consumer findConsumerByConsumerId(int id);
 
-    @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName} where consumerId=:#{#id}",nativeQuery = true)
+    @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName}, " +
+            "consumerEmail=:#{#consumer.consumerEmail}, consumerPhone=:#{#consumer.consumerPhone}, consumerAddress=:#{#consumer.consumerAddress} where consumerId=:#{#id}",nativeQuery = true)
     public void updateConsumerByconsumerId(Consumer consumer,int id);
 
-    public Optional<Consumer> findByConsumerName(String consumerName);
+
+    @Query("update DeliveryAddresses set streetAddress=:#{#deliveryAddresses.streetAddress}, city=:#{#deliveryAddresses.city}, pincode=:#{#deliveryAddresses.pincode}," +
+            "state=:#{#deliveryAddresses.state}, landmark=:#{#deliveryAddresses.landmark} where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
+    public void updateDeliveryAddress(DeliveryAddresses deliveryAddresses,int addressId,int consumerId);
+
+    @Query("delete from DeliveryAddresses where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
+    public void deleteDeliveryAddressById(int addressId,int consumerId);
+    public Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);
 
 
-//    public Set<DeliveryAddresses> addDeliv
 }

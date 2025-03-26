@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @EnableJpaRepositories
 public interface DeliveryAddressesRepo extends JpaRepository<DeliveryAddresses,Integer> {
+
+    public DeliveryAddresses findDeliveryAddressesByDeliveryAddressId(int addressId);
 }
 
