@@ -82,14 +82,14 @@ public class ConsumerController {
     @PostMapping("/add-address/{consumerId}")
     public ResponseEntity<Set<DeliveryAddresses>> AddAddress(@RequestBody DeliveryAddresses deliveryAddresses,
                                                              @PathVariable("consumerId")int consumerId){
-        if(deliveryAddresses==null && consumerId==0){
+        if(deliveryAddresses!=null && consumerId!=0){
 
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            Set<DeliveryAddresses> addressesSet = consumerService.AddDeliveryAddress(deliveryAddresses,consumerId);
+            if(addressesSet==null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.ok(addressesSet);
         }
-        Set<DeliveryAddresses> addressesSet = consumerService.AddDeliveryAddress(deliveryAddresses,consumerId);
-        if(addressesSet==null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        return ResponseEntity.ok(addressesSet);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     @PutMapping("/update-address/{consumerId}/{addressId}")

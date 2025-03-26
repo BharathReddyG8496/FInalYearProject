@@ -2,10 +2,12 @@ package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
 import com.example.finalyearproject.DataStore.Farmer;
+import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.Model.JwtRequest;
 import com.example.finalyearproject.Model.JwtResponse;
 import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.FarmerService;
+import com.example.finalyearproject.Services.ProductService;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,9 @@ public class FarmerController {
     @Autowired
     private FarmerService farmerService;
 
+    @Autowired
+    private ProductService productService;
+
     @PostMapping("/register-farmer")
     public ResponseEntity<Farmer> RegisterFarmer(@RequestBody Farmer farmer){
         if(farmer==null){
@@ -64,6 +69,54 @@ public class FarmerController {
                 .jwtToken(token)
                 .userName(userName).build();
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
+    // update-farmer
+    @PutMapping("/update-farmer/{farmerId}")
+    public ResponseEntity<Farmer> UpdateProduct(@RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
+        if(farmer!=null && farmerId!=0){
+            Farmer farmer1 = this.farmerService.UpdateFarmer(farmer,farmerId);
+            if(farmer1!=null)
+                return ResponseEntity.ok(farmer1);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
+    // add-product
+
+    @PostMapping("/add-product/{farmerId}")
+    public ResponseEntity<Product> AddProduct(@RequestBody Product product, @PathVariable("farmerId")int farmerId){
+        if (product!=null && farmerId!=0){
+            Product storedProduct = this.productService.AddProduct(product,farmerId);
+            if(storedProduct==null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.ok(storedProduct);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
+    // update-product
+
+    @PutMapping("/update-product/{farmerId}")
+    public ResponseEntity<Product> UpdateProduct(@RequestBody Product product, int farmerId){
+        if(product != null && farmerId != 0){
+            Product product1 = this.productService.UpdateProduct(product, farmerId);
+            if(product1!=null)
+                return ResponseEntity.ok(product1);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
+    // delete-product
+
+    @DeleteMapping("/delete-product/{farmerId}/{productId}")
+    public ResponseEntity DeleteProduct(@PathVariable("farmerId") int farmerId,@PathVariable("productId")int productId){
+        if(farmerId!=0 && productId!=0){
+            this.productService.DeleteProduct(farmerId, productId);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
 
