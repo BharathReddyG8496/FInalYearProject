@@ -38,15 +38,15 @@ public class Farmer {
     private String Address;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("farmer-ratings")
     private Set<Rating> rating;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("farmer-donations")
     private Set<Donation> donation;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("farmer-product")
     private Set<Product> product;
 
 

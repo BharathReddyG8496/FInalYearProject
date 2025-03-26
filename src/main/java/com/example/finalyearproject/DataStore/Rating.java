@@ -25,8 +25,8 @@ public class Rating {
     This(your approach) has to be done in case when the Framework is following lot more
     Bare metal approach.
      */
-//    @NotNull(message = "Consumer ID cannot be null")
-//    private int ConsumerId;
+    @NotNull(message = "Consumer ID cannot be null")
+    private int ConsumerId;
 //
 //    @NotNull(message = "Farmer ID cannot be null")
 //    private int FarmerId;
@@ -44,11 +44,12 @@ public class Rating {
     private LocalDateTime timestamp;
 
     @ManyToOne()
+//    @JoinColumn(name = "ConsumerId",insertable = false,updatable = false)
     @JsonBackReference("consumer-ratings")
     private Consumer consumer;
 
     @ManyToOne()
-    @JsonBackReference
+    @JsonBackReference("farmer-ratings")
 //    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 

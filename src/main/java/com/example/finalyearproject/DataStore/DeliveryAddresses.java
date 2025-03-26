@@ -42,6 +42,6 @@ public class DeliveryAddresses {
     private Consumer consumer;
 
     @OneToOne
-    @JsonManagedReference
+    @JsonManagedReference("delivery-order")
     private Order order;
 }

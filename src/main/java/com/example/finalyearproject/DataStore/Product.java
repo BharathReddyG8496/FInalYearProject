@@ -45,11 +45,11 @@ public class Product {
     private int Stock;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("order-product")
     private Set<OrderItem> orderItem;
 
     @ManyToOne()
-    @JsonBackReference
+    @JsonBackReference("farmer-product")
 //    @JoinColumn(name="FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 

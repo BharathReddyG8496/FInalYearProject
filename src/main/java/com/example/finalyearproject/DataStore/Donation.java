@@ -41,7 +41,7 @@ public class Donation {
     private Consumer consumer;
 
     @ManyToOne()
-    @JsonBackReference
+    @JsonBackReference("farmer-donations")
 //    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 

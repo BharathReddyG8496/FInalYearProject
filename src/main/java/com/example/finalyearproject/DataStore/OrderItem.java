@@ -34,12 +34,12 @@ public class OrderItem {
     private double UnitPrice;
 
     @ManyToOne()
-    @JsonBackReference
+    @JsonBackReference("order-items")
 //    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
 
     @ManyToOne()
-    @JsonBackReference
+    @JsonBackReference("order-product")
 //    @JoinColumn(name = "ProductId",insertable = false,updatable = false)
     private Product product;
 

@@ -32,14 +32,14 @@ public class Order {
     private double TotalAmount;
 
     @ManyToOne()
-    @JsonBackReference("consumer-orders")
+    @JsonBackReference("consumer-order")
     private Consumer consumer;
 
     @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("order-items")
     private Set<OrderItem> orderItems;
 
     @OneToOne
-    @JsonBackReference
+    @JsonBackReference("delivery-order")
     private DeliveryAddresses deliveryAddress;
 }
