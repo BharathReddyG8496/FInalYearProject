@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,24 +19,27 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DeliveryAddresses {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int DeliveryId;
+    @Column(name = "delivery_address_id", nullable = false)
+    private Long deliveryAddressId;
 
-//  private int OrderId;
-    @NotNull(message = "DeliveryMethod cannot be null")
-    private String DeliveryMethod;
+    @NotBlank(message = "Street address cannot be blank")
+    @Size(max = 255, message = "Street address cannot exceed 255 characters")
+    private String streetAddress;
 
-    @NotNull(message = "Status cannot be null")
-    private String Status;
+    @NotBlank(message = "City cannot be blank")
+    private String city;
 
-    @NotBlank(message = "DeliveryAddress cannot be null")
-    @Size(max = 255,message = "Limited to 255 char")
-    private String DeliveryAddress;
+    @NotBlank(message = "Pincode cannot be empty")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Invalid pincode format (must be a 6-digit number)")
+    private String pincode;
 
-    @NotNull(message = "Date cannot be null")
-    @Temporal(TemporalType.TIMESTAMP)
-    private LocalDateTime DeliveryDate;
+    @NotBlank(message = "State cannot be blank")
+    private String state;
+
+    private String landmark; // Optional landmark
 
     @ManyToOne
     @JsonBackReference("consumer-addresses")
