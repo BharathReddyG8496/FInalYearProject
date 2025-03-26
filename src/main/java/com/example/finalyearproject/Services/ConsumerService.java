@@ -2,6 +2,7 @@ package com.example.finalyearproject.Services;
 
 import com.example.finalyearproject.Abstraction.ConsumerRepo;
 import com.example.finalyearproject.DataStore.Consumer;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class ConsumerService {
 //    @Autowired
 //    private PasswordEncoder passwordEncoder;
 
-    public Consumer RegisterConsumer(Consumer consumer) {
+    public Consumer RegisterConsumer(@Valid Consumer consumer) {
 
 //        consumer.setConsumerPassword(passwordEncoder.encode(consumer.getConsumerPassword()));
         return consumerRepo.save(consumer);

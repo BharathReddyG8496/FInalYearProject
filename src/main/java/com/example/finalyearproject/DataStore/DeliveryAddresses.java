@@ -22,7 +22,7 @@ public class DeliveryAddresses {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DeliveryId;
 
-//    private int OrderId;
+//  private int OrderId;
     @NotNull(message = "DeliveryMethod cannot be null")
     private String DeliveryMethod;
 

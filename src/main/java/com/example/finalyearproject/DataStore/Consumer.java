@@ -18,7 +18,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 public class Consumer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
