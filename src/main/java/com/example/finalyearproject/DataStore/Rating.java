@@ -44,8 +44,7 @@ public class Rating {
     private LocalDateTime timestamp;
 
     @ManyToOne()
-    @JsonBackReference
-//    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
+    @JsonBackReference("consumer-ratings")
     private Consumer consumer;
 
     @ManyToOne()

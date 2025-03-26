@@ -17,7 +17,7 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     public Consumer findConsumerByConsumerId(int id);
 
-    @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName} where consumerId=:#{#id}",nativeQuery = true)
+    @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName}, consumerEmail=:#{#consumer.consumerEmail}, consumerPhone=:#{#consumer.consumerPhone}, consumerAddress=:#{#consumer.consumerAddress} where consumerId=:#{#id}",nativeQuery = true)
     public void updateConsumerByconsumerId(Consumer consumer,int id);
 
     public Optional<Consumer> findByConsumerName(String consumerName);

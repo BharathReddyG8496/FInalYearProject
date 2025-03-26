@@ -38,7 +38,7 @@ public class DeliveryAddresses {
     private LocalDateTime DeliveryDate;
 
     @ManyToOne
-    @JsonBackReference
+    @JsonBackReference("consumer-addresses")
     private Consumer consumer;
 
     @OneToOne

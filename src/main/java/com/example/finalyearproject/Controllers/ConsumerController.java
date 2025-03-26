@@ -1,13 +1,11 @@
 package com.example.finalyearproject.Controllers;
 
 
-import com.example.finalyearproject.Abstraction.ConsumerRepo;
 import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.Model.JwtRequest;
 import com.example.finalyearproject.Model.JwtResponse;
 import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.ConsumerService;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-public class AuthController {
+public class ConsumerController {
 
     @Autowired
     private ConsumerService consumerService;
@@ -37,10 +35,10 @@ public class AuthController {
     private AuthenticationManager manager;
 
 
-    @GetMapping("/getUser")
-    public ResponseEntity<String> getUser(){
-        return new ResponseEntity<>("Hello",HttpStatus.ACCEPTED);
-    }
+//    @GetMapping("/getUser")
+//    public ResponseEntity<String> getUser(){
+//        return new ResponseEntity<>("Hello",HttpStatus.ACCEPTED);
+//    }
 
 
     @PostMapping("/create-consumer")
@@ -66,6 +64,15 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PostMapping("/update-consumer")
+    public ResponseEntity updateConsumer(@RequestBody Consumer consumer){
+        try {
+            this.consumerService.UpdateConsumer(consumer);
+        }catch (Exception e){
+            return (ResponseEntity) ResponseEntity.status(HttpStatus.BAD_REQUEST);
+        }
+        return (ResponseEntity) ResponseEntity.ok();
+    }
     private void doAuthenticate(String userName, String password) {
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userName, password);

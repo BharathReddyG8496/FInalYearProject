@@ -17,7 +17,6 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class Consumer implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,29 +36,29 @@ public class Consumer implements UserDetails {
     private String consumerEmail;
 
     @NotNull(message = "Phone number cannot be null")
-    @Pattern(regexp = "\\+\\{12}")
+    @Pattern(regexp = "^(\\+91|0)?\\d{9}$")
     @Column(unique = true)
-    private int consumerPhone;
+    private String consumerPhone;
 
     @NotBlank(message = "Address cannot be blank")
     @Size(max = 255, message = "Address cannot exceed 255 characters")
     private String consumerAddress;
 
-    @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("consumer-ratings")
     private Set<Rating> consumerRatings;
 
 
-    @OneToMany( cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
+    @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("consumer-donations")
     private Set<Donation> consumerDonations;
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("consumer-order")
     private Set<Order> consumerOrder;
 
     @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("consumer-addresses")
     private Set<DeliveryAddresses> setOfDeliveryAddress;
 
     @Override

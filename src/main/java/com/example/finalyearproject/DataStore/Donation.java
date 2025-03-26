@@ -37,8 +37,7 @@ public class Donation {
     private String PaymentMethod;
 
     @ManyToOne()
-    @JsonBackReference
-//    @JoinColumn(name = "ConsumerId", insertable = false, updatable = false)
+    @JsonBackReference("consumer-donations")
     private Consumer consumer;
 
     @ManyToOne()

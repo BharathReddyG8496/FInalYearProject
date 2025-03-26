@@ -32,8 +32,7 @@ public class Order {
     private double TotalAmount;
 
     @ManyToOne()
-    @JsonBackReference
-//    @JoinColumn(name = "ConsumerId",updatable = false)
+    @JsonBackReference("consumer-orders")
     private Consumer consumer;
 
     @OneToMany(mappedBy = "order",cascade = CascadeType.ALL)
