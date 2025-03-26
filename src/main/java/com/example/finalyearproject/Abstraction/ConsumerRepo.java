@@ -4,6 +4,7 @@ import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.DeliveryAddresses;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.stereotype.Repository;
@@ -16,9 +17,10 @@ import java.util.Set;
 public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     public Consumer findConsumerByConsumerId(int id);
-
-    @Query(value = "update Consumer set consumerFirstName=:#{#consumer.consumerFirstName}, consumerLastName=:#{#consumer.consumerLastName}, " +
-            "consumerEmail=:#{#consumer.consumerEmail}, consumerPhone=:#{#consumer.consumerPhone}, consumerAddress=:#{#consumer.consumerAddress} where consumerId=:#{#id}",nativeQuery = true)
+    @Modifying
+    @Transactional
+    @Query(value = "update Consumer set consumer_First_Name=:#{#consumer.consumerFirstName}, consumer_Last_Name=:#{#consumer.consumerLastName}, " +
+            "consumer_Name=:#{#consumer.consumerName}, consumer_Phone=:#{#consumer.consumerPhone}, consumer_Address=:#{#consumer.consumerAddress} where consumer_Id=:#{#id}",nativeQuery = true)
     public void updateConsumerByconsumerId(Consumer consumer,int id);
 
 

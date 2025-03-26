@@ -70,33 +70,33 @@ public class ConsumerController {
     }
 
     @PostMapping("/update-consumer")
-    public ResponseEntity updateConsumer(@RequestBody Consumer consumer){
+    public ResponseEntity<String> updateConsumer(@RequestBody Consumer consumer){
         try {
             this.consumerService.UpdateConsumer(consumer);
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("updated ");
     }
 
     @PostMapping("/add-address/{consumerId}")
     public ResponseEntity<Set<DeliveryAddresses>> AddAddress(@RequestBody DeliveryAddresses deliveryAddresses,
                                                              @PathVariable("consumerId")int consumerId){
-        if(deliveryAddresses==null && consumerId==0){
+        if(deliveryAddresses!=null && consumerId!=0){
 
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            Set<DeliveryAddresses> addressesSet = consumerService.AddDeliveryAddress(deliveryAddresses,consumerId);
+            if(addressesSet==null)
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.ok(addressesSet);
         }
-        Set<DeliveryAddresses> addressesSet = consumerService.AddDeliveryAddress(deliveryAddresses,consumerId);
-        if(addressesSet==null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        return ResponseEntity.ok(addressesSet);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     @PutMapping("/update-address/{consumerId}/{addressId}")
-    public ResponseEntity<DeliveryAddresses> UpdateAddress(@RequestBody DeliveryAddresses address,@PathVariable("consumerId") int consumerId,@PathVariable("addressId") int addressId){
+    public ResponseEntity<DeliveryAddresses> UpdateAddress( @Valid @RequestBody DeliveryAddresses address,@PathVariable("consumerId") int consumerId,@PathVariable("addressId") int addressId){
         if(address!=null && consumerId!=0 && addressId!=0){
             DeliveryAddresses deliveryAddresses = consumerService.UpdateDeliveryAddress(address,consumerId,addressId);
-            if(deliveryAddresses==null)
+            if(deliveryAddresses!=null)
                 return ResponseEntity.ok(deliveryAddresses);
 
         }

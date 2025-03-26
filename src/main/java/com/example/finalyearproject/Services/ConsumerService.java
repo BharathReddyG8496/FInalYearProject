@@ -33,7 +33,8 @@ public class ConsumerService {
     }
 
     public void UpdateConsumer(Consumer consumer){
-        consumerRepo.updateConsumerByconsumerId(consumer, consumer.getConsumerId());
+        int id=1;
+        consumerRepo.updateConsumerByconsumerId(consumer, id);
 
     }
 

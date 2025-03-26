@@ -46,7 +46,7 @@ public class SecurityConfig{
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/create-consumer").authenticated()
+                        .requestMatchers("/auth/create-consumer","/auth/update-consumer").permitAll()
 
                         .requestMatchers("/test").authenticated()
                         .anyRequest().authenticated()

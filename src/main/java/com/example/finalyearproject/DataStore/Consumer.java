@@ -38,7 +38,6 @@ public class Consumer implements UserDetails {
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
     @Column(unique = true)
-    @UniqueElements
     private String consumerEmail;
 
     @NotNull(message = "Phone number cannot be null")
