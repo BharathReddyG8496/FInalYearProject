@@ -6,6 +6,8 @@ import com.example.finalyearproject.Model.JwtRequest;
 import com.example.finalyearproject.Model.JwtResponse;
 //import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.ConsumerService;
+import jakarta.validation.Valid;
+import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Validate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +44,7 @@ public class ConsumerController {
 
 
     @PostMapping(path = "/create-consumer",consumes = "application/json")
-    public ResponseEntity<Consumer> RegisterConsumer(@RequestBody Consumer consumer){
+    public ResponseEntity<Consumer> RegisterConsumer(@RequestBody @Valid Consumer consumer){
         System.out.println("consumer"+consumer.getConsumerFirstName());
         Consumer consumer1 = this.consumerService.RegisterConsumer(consumer);
         if(consumer1!=null)

@@ -38,7 +38,7 @@ public class Consumer {
     private String consumerEmail;
 
     @NotNull(message = "Phone number cannot be null")
-    @Pattern(regexp = "^(\\+91|0)?\\d{9}$")
+    @Pattern(regexp = "^(\\+91|0)?\\d{10}$")
     @Column(unique = true)
     private String consumerPhone;
 
