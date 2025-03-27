@@ -42,12 +42,11 @@ public class ConsumerService {
 
         if(deliveryAddresses!=null && consumerId!=0){
             Consumer consumer = consumerRepo.findConsumerByConsumerId(consumerId);
-            if(consumer.getSetOfDeliveryAddress()==null){
-                Set<DeliveryAddresses> deliveryAddressesSet = new HashSet<>();
-                deliveryAddressesSet.add(deliveryAddresses);
-            }else{
-                consumer.getSetOfDeliveryAddress().add(deliveryAddresses);
+            deliveryAddresses.setConsumer(consumer);
+            if (consumer.getSetOfDeliveryAddress() == null) {
+                consumer.setSetOfDeliveryAddress(new HashSet<>());
             }
+            consumer.getSetOfDeliveryAddress().add(deliveryAddresses);
             consumerRepo.save(consumer);
             return consumer.getSetOfDeliveryAddress();
         }

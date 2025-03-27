@@ -23,7 +23,8 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
             "consumer_Name=:#{#consumer.consumerName}, consumer_Phone=:#{#consumer.consumerPhone}, consumer_Address=:#{#consumer.consumerAddress} where consumer_Id=:#{#id}",nativeQuery = true)
     public void updateConsumerByconsumerId(Consumer consumer,int id);
 
-
+    @Modifying
+    @Transactional
     @Query("update DeliveryAddresses set streetAddress=:#{#deliveryAddresses.streetAddress}, city=:#{#deliveryAddresses.city}, pincode=:#{#deliveryAddresses.pincode}," +
             "state=:#{#deliveryAddresses.state}, landmark=:#{#deliveryAddresses.landmark} where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
     public void updateDeliveryAddress(DeliveryAddresses deliveryAddresses,int addressId,int consumerId);
