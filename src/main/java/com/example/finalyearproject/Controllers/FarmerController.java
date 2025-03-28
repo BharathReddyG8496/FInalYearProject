@@ -84,45 +84,6 @@ public class FarmerController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    // add-product
-
-    @PostMapping("/add-product/{farmerId}")
-    public ResponseEntity<Product> AddProduct(@RequestBody Product product, @PathVariable("farmerId")int farmerId){
-        if (product!=null && farmerId!=0){
-            Product storedProduct = this.productService.AddProduct(product,farmerId);
-            if(storedProduct==null)
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-            return ResponseEntity.ok(storedProduct);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-    }
-
-    // update-product
-
-    @PutMapping("/update-product/{farmerId}")
-    public ResponseEntity<Product> UpdateProduct(@RequestBody Product product, int farmerId){
-        if(product != null && farmerId != 0){
-            Product product1 = this.productService.UpdateProduct(product, farmerId);
-            if(product1!=null)
-                return ResponseEntity.ok(product1);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-    }
-
-    // delete-product
-
-    @DeleteMapping("/delete-product/{farmerId}/{productId}")
-    public ResponseEntity DeleteProduct(@PathVariable("farmerId") int farmerId,@PathVariable("productId")int productId){
-        if(farmerId!=0 && productId!=0){
-            this.productService.DeleteProduct(farmerId, productId);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-    }
-
-
-
-
     private void doAuthenticate(String userEmail, String password) {
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userEmail, password);

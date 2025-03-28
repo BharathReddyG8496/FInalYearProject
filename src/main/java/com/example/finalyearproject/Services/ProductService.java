@@ -20,19 +20,20 @@ public class ProductService {
     private FarmerRepo farmerRepo;
 
     public Product AddProduct(Product product, int farmerId){
-        Farmer farmer = this.farmerRepo.findFarmerByFarmerId(farmerId);
-        if(farmer!=null){
-            if(farmer.getFarmerProducts()==null){
-                Set<Product> products = new HashSet<>();
-                products.add(product);
-                farmer.setFarmerProducts(products);
-            }else{
-                farmer.getFarmerProducts().add(product);
-            }
-            product.setFarmer(farmer);
-            return this.productRepo.save(product);
+        if (product == null || farmerId == 0) {
+            throw new IllegalArgumentException("Product or Farmer ID cannot be null/zero");
         }
-        return null;
+        Farmer farmer = farmerRepo.findFarmerByFarmerId(farmerId);
+        if (farmer == null) {
+            throw new RuntimeException("Farmer not found with ID: " + farmerId);
+        }
+        product.setFarmer(farmer);
+        if (farmer.getFarmerProducts() == null) {
+            farmer.setFarmerProducts(new HashSet<>());
+        }
+        farmer.getFarmerProducts().add(product);
+
+        return productRepo.save(product);
     }
 
     public Product UpdateProduct(Product product, int farmerId){
@@ -45,6 +46,7 @@ public class ProductService {
     }
 
     public void DeleteProduct(int productId,int farmerId){
+
         this.productRepo.deleteByProductId(productId, farmerId);
     }
 
