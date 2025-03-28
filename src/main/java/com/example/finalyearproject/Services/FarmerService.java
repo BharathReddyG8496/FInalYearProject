@@ -24,11 +24,7 @@ public class FarmerService {
 
     public Farmer UpdateFarmer(Farmer farmer,int farmerId){
         farmerRepo.updateByFarmerId(farmer,farmerId);
-        Farmer farmer1 = this.farmerRepo.findFarmerByFarmerId(farmerId);
-        if(farmer1!=null){
-            return farmer1;
-        }
-        return null;
+        return this.farmerRepo.findFarmerByFarmerId(farmerId);
     }
 
 

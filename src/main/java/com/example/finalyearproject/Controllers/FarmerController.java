@@ -75,8 +75,8 @@ public class FarmerController {
 
     // update-farmer
     @PutMapping("/update-farmer/{farmerId}")
-    public ResponseEntity<Farmer> UpdateProduct(@RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
-        if(farmer!=null && farmerId!=0){
+    public ResponseEntity<Farmer> UpdateProduct(@Valid @RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
+        if(farmerId!=0){
             Farmer farmer1 = this.farmerService.UpdateFarmer(farmer,farmerId);
             if(farmer1!=null)
                 return ResponseEntity.ok(farmer1);

@@ -46,7 +46,7 @@ public class ConsumerController {
 
 
     @PostMapping(path = "/create-consumer",consumes = "application/json")
-    public ResponseEntity<Consumer> RegisterConsumer(@RequestBody @Valid Consumer consumer){
+    public ResponseEntity<Consumer> RegisterConsumer(@Valid @RequestBody Consumer consumer){
         System.out.println("consumer"+consumer.getConsumerFirstName());
         Consumer consumer1 = this.consumerService.RegisterConsumer(consumer);
         if(consumer1!=null)
@@ -69,10 +69,10 @@ public class ConsumerController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PostMapping("/update-consumer")
-    public ResponseEntity<String> updateConsumer(@RequestBody Consumer consumer){
+    @PostMapping("/update-consumer/{id}")
+    public ResponseEntity<String> updateConsumer(@Valid @RequestBody Consumer consumer, @PathVariable int id){
         try {
-            this.consumerService.UpdateConsumer(consumer);
+            this.consumerService.UpdateConsumer(consumer, id);
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

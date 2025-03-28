@@ -32,14 +32,12 @@ public class ConsumerService {
         return consumerRepo.save(consumer);
     }
 
-    public void UpdateConsumer(Consumer consumer){
-        int id=1;
+    public void UpdateConsumer(Consumer consumer, int id){
         consumerRepo.updateConsumerByconsumerId(consumer, id);
 
     }
 
     public Set<DeliveryAddresses> AddDeliveryAddress(DeliveryAddresses deliveryAddresses,int consumerId){
-
         if(deliveryAddresses!=null && consumerId!=0){
             Consumer consumer = consumerRepo.findConsumerByConsumerId(consumerId);
             deliveryAddresses.setConsumer(consumer);
