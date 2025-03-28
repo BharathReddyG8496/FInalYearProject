@@ -8,6 +8,7 @@ import com.example.finalyearproject.Model.JwtResponse;
 import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.FarmerService;
 import com.example.finalyearproject.Services.ProductService;
+import jakarta.validation.Valid;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,7 @@ public class FarmerController {
     private ProductService productService;
 
     @PostMapping("/register-farmer")
-    public ResponseEntity<Farmer> RegisterFarmer(@RequestBody Farmer farmer){
+    public ResponseEntity<Farmer> RegisterFarmer(@Valid @RequestBody Farmer farmer){
         if(farmer==null){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

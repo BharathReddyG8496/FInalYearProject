@@ -29,8 +29,13 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
             "state=:#{#deliveryAddresses.state}, landmark=:#{#deliveryAddresses.landmark} where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
     public void updateDeliveryAddress(DeliveryAddresses deliveryAddresses,int addressId,int consumerId);
 
+    @Modifying
+    @Transactional
     @Query("delete from DeliveryAddresses where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
     public void deleteDeliveryAddressById(int addressId,int consumerId);
+
+
+
     public Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);
 
 

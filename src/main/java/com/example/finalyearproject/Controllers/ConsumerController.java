@@ -80,7 +80,7 @@ public class ConsumerController {
     }
 
     @PostMapping("/add-address/{consumerId}")
-    public ResponseEntity<Set<DeliveryAddresses>> AddAddress(@RequestBody DeliveryAddresses deliveryAddresses,
+    public ResponseEntity<Set<DeliveryAddresses>> AddAddress(@Valid @RequestBody DeliveryAddresses deliveryAddresses,
                                                              @PathVariable("consumerId")int consumerId){
         if(deliveryAddresses!=null && consumerId!=0){
 

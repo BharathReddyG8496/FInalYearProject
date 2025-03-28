@@ -30,7 +30,7 @@ public class Farmer implements UserDetails {
 
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
-    @UniqueElements
+    @Column(unique = true)
     private String farmerEmail;
 
     @NotNull
@@ -43,8 +43,8 @@ public class Farmer implements UserDetails {
 
     @NotNull(message = "Phone number cannot be null")
     @Column(unique = true)
-    @Pattern(regexp = "\\+\\{12}")
-    private int farmerPhone;
+    @Pattern(regexp = "^(\\+91|0)?\\d{10}$")
+    private String farmerPhone;
 
     @NotBlank(message = "Address cannot be null")
     @Size(max = 255)
