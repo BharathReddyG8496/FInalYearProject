@@ -43,6 +43,8 @@ public class Rating {
     @PastOrPresent(message = "Timestamp must be in the past or present")
     private LocalDateTime timestamp;
 
+    private float farmersCurrentAvgRating;
+
     @ManyToOne()
 //    @JoinColumn(name = "ConsumerId",insertable = false,updatable = false)
     @JsonBackReference("consumer-ratings")

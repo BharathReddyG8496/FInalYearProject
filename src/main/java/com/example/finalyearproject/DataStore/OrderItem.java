@@ -23,14 +23,12 @@ public class OrderItem {
 //    private int OrderId;
 
     @NotNull(message = "Quantity cannot be null")
-    @Positive
     private int Quantity;
 
 //    @NotNull(message = "ProductId cannot be null")
 //    private int ProductId;
 
     @NotNull(message = "UnitPrice cannot be null")
-    @Positive
     private double UnitPrice;
 
     @ManyToOne()

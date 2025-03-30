@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/consumer")
 public class ConsumerController {
 
     @Autowired
@@ -70,7 +70,7 @@ public class ConsumerController {
     }
 
     @PostMapping("/update-consumer/{id}")
-    public ResponseEntity<String> updateConsumer(@Valid @RequestBody Consumer consumer, @PathVariable int id){
+    public ResponseEntity<String> updateConsumer(@RequestBody Consumer consumer, @PathVariable int id){
         try {
             this.consumerService.UpdateConsumer(consumer, id);
         }catch (Exception e){

@@ -31,6 +31,8 @@ public class Order {
 //    @Positive
     private double TotalAmount;
 
+    private String orderStatus;
+
     @ManyToOne()
     @JsonBackReference("consumer-order")
     private Consumer consumer;
