@@ -2,6 +2,7 @@ package com.example.finalyearproject.Abstraction;
 
 import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.DeliveryAddresses;
+import com.example.finalyearproject.DataStore.OrderItem;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -33,7 +34,6 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
     @Transactional
     @Query("delete from DeliveryAddresses where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
     public void deleteDeliveryAddressById(int addressId,int consumerId);
-
 
 
     public Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);

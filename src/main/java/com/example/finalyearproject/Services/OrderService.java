@@ -66,6 +66,14 @@ public class OrderService {
             orderItem.setUnitPrice(product.getPrice()*quantity);
             orderItem.setOrder(order);
             orderItem.setProduct(product);
+            if(product.getOrderItem() == null){
+                Set<OrderItem> orderItemsSet = new HashSet<>();
+                orderItemsSet.add(orderItem);
+                product.setOrderItem(orderItemsSet);
+            }else{
+                product.getOrderItem().add(orderItem);
+            }
+
             orderItemRepo.save(orderItem);
 
             orders.add(order);
@@ -74,6 +82,8 @@ public class OrderService {
         }else{
             for(Order order1 : consumer.getConsumerOrder()){
                 if(order1.getOrderStatus().equals("CREATED")){
+
+                    // Checks for existing product in the cart.
                     for(OrderItem orderItem1: order1.getOrderItems()){
                         if(orderItem1.getProduct().getProductId()==productId) {
                             if((orderItem1.getQuantity()+quantity)>product.getStock())
@@ -88,10 +98,20 @@ public class OrderService {
                             return new OrderUtility(200,"Added the items to the existing order",order1.getOrderItems());
                         }
                     }
+
+                    // Adds new product into the cart.
                     orderItem = new OrderItem();
                     if(quantity>product.getStock())
                         return new OrderUtility(400,"The entered quantity is exceeding the Stock of Product", null);
                     orderItem.setProduct(product);
+
+                    if(product.getOrderItem() == null){
+                        Set<OrderItem> orderItemsSet = new HashSet<>();
+                        orderItemsSet.add(orderItem);
+                        product.setOrderItem(orderItemsSet);
+                    }else{
+                        product.getOrderItem().add(orderItem);
+                    }
                     orderItem.setQuantity(quantity);
 //            product.setStock(product.getStock()-quantity);
                     orderItem.setUnitPrice(product.getPrice()*quantity);
@@ -99,8 +119,9 @@ public class OrderService {
                     orderItem.setProduct(product);
                     orderItemRepo.save(orderItem);
 
+                    order1.setTotalAmount(order1.getTotalAmount()+(product.getPrice()*quantity));
                     order1.getOrderItems().add(orderItem);
-
+                    this.orderRepo.save(order1);
                     return new OrderUtility(200,"New item added to the cart",order1.getOrderItems());
                 }
 
@@ -141,6 +162,34 @@ public class OrderService {
         }catch(Exception e){
             return new OrderUtility(400, e.getMessage(), null);
         }
+    }
+
+    public OrderUtility GetConsumerCart(int consumerId){
+        if(consumerId==0){
+            return new OrderUtility(400,"ConsumerId is 0",null);
+        }
+        Set<OrderItem> orderItemSet = this.orderRepo.getConsumersCart(consumerId).getOrderItems();
+        if(orderItemSet!=null)
+            return new OrderUtility(200,"Total Products : "+orderItemSet.size(),orderItemSet);
+        return new OrderUtility(400,"Got null set from the executed query",null);
+    }
+
+    public OrderUtility UpdateTheChangesField(int consumerId){
+        if(consumerId==0){
+            return new OrderUtility(400,"ConsumerId is 0",null);
+        }
+        Set<OrderItem> orderItemSet = this.orderRepo.getConsumersCart(consumerId).getOrderItems();
+        if(orderItemSet!=null) {
+            for(OrderItem orderItem : orderItemSet){
+                if(orderItem.getFieldChange()!=null) {
+                    orderItem.setFieldChange(null);
+                    this.orderItemRepo.save(orderItem);
+                }
+            }
+            return new OrderUtility(200, "Total Products : " + orderItemSet.size(), orderItemSet);
+        }
+        return new OrderUtility(400,"Got null set from the executed query",null);
+
     }
 
 

@@ -19,4 +19,5 @@ public interface OrderItemRepo extends JpaRepository<OrderItem, Integer> {
     @Transactional
     @Query("delete from OrderItem o where o.OrderItemId=:#{#orderItemId}")
     public void deleteByOrderItemId(int orderItemId);
+
 }

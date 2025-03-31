@@ -29,10 +29,11 @@ public class ProductController {
     }
     // update-product
 
-    @PutMapping("/update-product/{farmerId}")
-    public ResponseEntity<Product> UpdateProduct(@RequestBody Product product, int farmerId){
+    @PutMapping("/update-product/{productId}/{farmerId}")
+    public ResponseEntity<Product> UpdateProduct(@RequestBody Product product,@PathVariable int productId,@PathVariable int farmerId){
+        System.out.println(product.toString());
         if(product != null && farmerId != 0){
-            Product product1 = this.productService.UpdateProduct(product, farmerId);
+            Product product1 = this.productService.UpdateProduct(product,productId, farmerId);
             if(product1!=null)
                 return ResponseEntity.ok(product1);
         }

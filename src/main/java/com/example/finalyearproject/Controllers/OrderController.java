@@ -1,5 +1,6 @@
 package com.example.finalyearproject.Controllers;
 
+import com.example.finalyearproject.DataStore.Order;
 import com.example.finalyearproject.DataStore.OrderItem;
 import com.example.finalyearproject.Services.OrderService;
 import com.example.finalyearproject.Utility.OrderUtility;
@@ -7,10 +8,7 @@ import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
 
@@ -33,6 +31,24 @@ public class OrderController {
     @PostMapping("/remove-from-cart/{consumerId}/{orderItemId}/{quantity}")
     public ResponseEntity<OrderUtility> RemoveFromCart(@PathVariable int consumerId, @PathVariable int orderItemId,@PathVariable int quantity){
         OrderUtility orderUtility = this.orderService.RemoveFromCart(consumerId, orderItemId, quantity);
+        if(orderUtility.getOrderItems()==null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+    }
+
+    @GetMapping("/get-consumer-cart/{consumerId}")
+    public ResponseEntity<OrderUtility> GetConsumerCart(@PathVariable int consumerId){
+        OrderUtility orderUtility = this.orderService.GetConsumerCart(consumerId);
+        if(orderUtility.getOrderItems()==null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+    }
+
+    @GetMapping("/update-the-ChangesField/{consumerId}")
+    public ResponseEntity<OrderUtility> UpdateTheChangesField(@PathVariable int consumerId){
+        OrderUtility orderUtility = this.orderService.UpdateTheChangesField(consumerId);
         if(orderUtility.getOrderItems()==null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
         }

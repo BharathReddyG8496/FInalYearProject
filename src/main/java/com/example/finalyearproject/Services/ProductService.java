@@ -1,8 +1,12 @@
 package com.example.finalyearproject.Services;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
+import com.example.finalyearproject.Abstraction.OrderItemRepo;
+import com.example.finalyearproject.Abstraction.OrderRepo;
 import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.Farmer;
+import com.example.finalyearproject.DataStore.Order;
+import com.example.finalyearproject.DataStore.OrderItem;
 import com.example.finalyearproject.DataStore.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,12 @@ public class ProductService {
 
     @Autowired
     private FarmerRepo farmerRepo;
+
+    @Autowired
+    private OrderRepo orderRepo;
+
+    @Autowired
+    private OrderItemRepo orderItemRepo;
 
     public Product AddProduct(Product product, int farmerId){
         if (product == null || farmerId == 0) {
@@ -36,13 +46,54 @@ public class ProductService {
         return productRepo.save(product);
     }
 
-    public Product UpdateProduct(Product product, int farmerId){
-        this.productRepo.updateProductById(product, farmerId);
+    public Product UpdateProduct(Product product,int productId, int farmerId){
+        try {
+            Product prevProduct = this.productRepo.findProductByProductId(productId);
+            this.productRepo.updateProductById(product, productId,farmerId);
+            String priceChange = (prevProduct.getPrice() > product.getPrice()) ? "DEC" :
+                    (prevProduct.getPrice() < product.getPrice()) ? "INC" : "";
+            double priceChangeVal = Math.abs(prevProduct.getPrice() - product.getPrice());
+            String stockChange = (prevProduct.getStock() > product.getStock()) ? "DEC" :
+                    (prevProduct.getStock() < product.getStock()) ? "INC" : "";
+//        int stockChangeVal = Math.abs(prevProduct.getStock()- product.getStock());
 
-        // Still more  modifications might require....
+            Set<OrderItem> orderItems = prevProduct.getOrderItem();
+            for (OrderItem orderItem : orderItems) {
+                if (orderItem.getOrder().getOrderStatus().equals("CREATED")) {
+                    Order order = orderItem.getOrder();
+                    if (priceChange.equals("DEC")) {
 
-        Product product1 = this.productRepo.findProductByProductId(product.getProductId());
-        return product1;
+                        orderItem.setFieldChange("The Price has been Decreased!!!");
+                        orderItem.setUnitPrice(orderItem.getUnitPrice() - (priceChangeVal * orderItem.getQuantity()));
+                        order.setTotalAmount(order.getTotalAmount() - (priceChangeVal * orderItem.getQuantity()));
+                    } else if (priceChange.equals("INC")) {
+                        orderItem.setFieldChange("The Price has been Increased!!!");
+                        orderItem.setUnitPrice(orderItem.getUnitPrice() + (priceChangeVal * orderItem.getQuantity()));
+                        order.setTotalAmount(order.getTotalAmount() + (priceChangeVal * orderItem.getQuantity()));
+                    }
+                    if (stockChange.equals("DEC")) {
+                        orderItem.setFieldChange(orderItem.getFieldChange()+" AND The Stocks has been Decreased!!!");
+                        if (orderItem.getQuantity() > product.getStock()) {
+                            int stockChangeVal = Math.abs(orderItem.getQuantity() - product.getStock());
+                            double priceChangeValForStock = stockChangeVal * product.getPrice();
+                            orderItem.setQuantity(orderItem.getQuantity() - stockChangeVal);
+                            orderItem.setUnitPrice(orderItem.getUnitPrice() - priceChangeValForStock);
+                            order.setTotalAmount(order.getTotalAmount() - priceChangeValForStock);
+                        }
+                    } else if (stockChange.equals("INC")) {
+                        orderItem.setFieldChange(orderItem.getFieldChange()+" AND The Stocks has been Increased!!! You can add still more products to your cart.");
+                    }
+                    this.orderItemRepo.save(orderItem);
+                    this.orderRepo.save(order);
+                }
+            }
+
+            Product product1 = this.productRepo.findProductByProductId(productId);
+            return product1;
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+            return null;
+        }
     }
 
     public void DeleteProduct(int productId,int farmerId){

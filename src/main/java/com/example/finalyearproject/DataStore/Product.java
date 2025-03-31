@@ -6,11 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Set;
 
@@ -19,30 +15,28 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int ProductId;
+    private int productId;
 
 //    @NotNull(message = "cannot be null")
 //    private int FarmerId;
 
     @NotBlank(message = "Product name cannot be null")
     @Column(length = 100)
-    private String Name;
+    private String name;
 
     @NotBlank(message = " Description cannot be null")
-    @Lob
-    private String Description;
+    private String description;
 
     @NotNull(message = "Price cannot be null")
-    @Positive
-    private double Price;
+    private double price;
 
     @NotNull(message = "stock cannot be null")
-    @Positive
     @Min(value = 0)
-    private int Stock;
+    private int stock;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JsonManagedReference("order-product")
