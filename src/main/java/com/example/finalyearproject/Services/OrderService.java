@@ -32,6 +32,7 @@ public class OrderService {
     private ProductRepo productRepo;
 
     public OrderUtility AddToCart(int consumerId, int productId, int quantity){
+        try{
         if(consumerId==0 || productId==0 || quantity==0){
             return new OrderUtility(400,"The parameters cannot be null!!!",null);
         }
@@ -107,8 +108,40 @@ public class OrderService {
 
         }
         return new OrderUtility(400,"Something went wrong",null);
+    }catch(Exception e){
+        return new OrderUtility(400, e.getMessage(), null);
+    }
     }
 
+    public OrderUtility RemoveFromCart(int consumerId,int orderItemId,int quantity){
+
+        try {
+            Consumer consumer = this.consumerRepo.findConsumerByConsumerId(consumerId);
+            if (consumerId == 0 || orderItemId == 0 || consumer == null) {
+                return new OrderUtility(400, "The parameters cannot be null!!!", null);
+            }
+
+            OrderItem orderItem = this.orderItemRepo.findOrderItemWithStatusCREATED(consumerId, orderItemId);
+            Order order = this.orderRepo.findByStatusAndConsumerId("CREATED", consumerId);
+            Product product = orderItem.getProduct();
+            if (quantity >= orderItem.getQuantity()) {
+                order.setTotalAmount(order.getTotalAmount() - orderItem.getUnitPrice());
+                order.getOrderItems().remove(orderItem);
+                product.getOrderItem().remove(orderItem);
+                this.orderItemRepo.deleteByOrderItemId(orderItemId);
+                return new OrderUtility(200, "Removed the product from the cart", order.getOrderItems());
+            }
+            double priceChange = (quantity * orderItem.getProduct().getPrice());
+            orderItem.setQuantity(orderItem.getQuantity() - quantity);
+            orderItem.setUnitPrice(orderItem.getUnitPrice() - priceChange);
+            order.setTotalAmount(order.getTotalAmount() - priceChange);
+            this.orderItemRepo.save(orderItem);
+            this.orderRepo.save(order);
+            return new OrderUtility(200, "Removed the specific quantity of products", order.getOrderItems());
+        }catch(Exception e){
+            return new OrderUtility(400, e.getMessage(), null);
+        }
+    }
 
 
 }

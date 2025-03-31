@@ -30,4 +30,13 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
     }
 
+    @PostMapping("/remove-from-cart/{consumerId}/{orderItemId}/{quantity}")
+    public ResponseEntity<OrderUtility> RemoveFromCart(@PathVariable int consumerId, @PathVariable int orderItemId,@PathVariable int quantity){
+        OrderUtility orderUtility = this.orderService.RemoveFromCart(consumerId, orderItemId, quantity);
+        if(orderUtility.getOrderItems()==null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+    }
+
 }
