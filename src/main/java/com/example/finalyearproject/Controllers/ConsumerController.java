@@ -8,6 +8,8 @@ import com.example.finalyearproject.Model.JwtResponse;
 //import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.ConsumerService;
+import com.example.finalyearproject.Utility.ConsumerUtility;
+import com.example.finalyearproject.Utility.DeliveryAddressUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,9 +48,9 @@ public class ConsumerController {
 
 
     @PostMapping(path = "/create-consumer",consumes = "application/json")
-    public ResponseEntity<Consumer> RegisterConsumer(@Valid @RequestBody Consumer consumer){
+    public ResponseEntity<ConsumerUtility> RegisterConsumer(@Valid @RequestBody Consumer consumer){
         System.out.println("consumer"+consumer.getConsumerFirstName());
-        Consumer consumer1 = this.consumerService.RegisterConsumer(consumer);
+        ConsumerUtility consumer1 = this.consumerService.RegisterConsumer(consumer);
         if(consumer1!=null)
             return ResponseEntity.ok(consumer1);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -93,9 +95,9 @@ public class ConsumerController {
     }
 
     @PutMapping("/update-address/{consumerId}/{addressId}")
-    public ResponseEntity<DeliveryAddresses> UpdateAddress( @Valid @RequestBody DeliveryAddresses address,@PathVariable("consumerId") int consumerId,@PathVariable("addressId") int addressId){
+    public ResponseEntity<DeliveryAddressUtility> UpdateAddress(@Valid @RequestBody DeliveryAddresses address, @PathVariable("consumerId") int consumerId, @PathVariable("addressId") int addressId){
         if(address!=null && consumerId!=0 && addressId!=0){
-            DeliveryAddresses deliveryAddresses = consumerService.UpdateDeliveryAddress(address,consumerId,addressId);
+            DeliveryAddressUtility deliveryAddresses = consumerService.UpdateDeliveryAddress(address,consumerId,addressId);
             if(deliveryAddresses!=null)
                 return ResponseEntity.ok(deliveryAddresses);
 

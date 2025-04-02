@@ -62,7 +62,6 @@ public class OrderService {
 
             orderItem.setProduct(product);
             orderItem.setQuantity(quantity);
-//            product.setStock(product.getStock()-quantity);
             orderItem.setUnitPrice(product.getPrice()*quantity);
             orderItem.setOrder(order);
             orderItem.setProduct(product);
@@ -113,7 +112,7 @@ public class OrderService {
                         product.getOrderItem().add(orderItem);
                     }
                     orderItem.setQuantity(quantity);
-//            product.setStock(product.getStock()-quantity);
+                    //            product.setStock(product.getStock()-quantity);
                     orderItem.setUnitPrice(product.getPrice()*quantity);
                     orderItem.setOrder(order1);
                     orderItem.setProduct(product);

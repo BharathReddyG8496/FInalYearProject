@@ -4,12 +4,15 @@ import com.example.finalyearproject.Abstraction.ConsumerRepo;
 import com.example.finalyearproject.Abstraction.DeliveryAddressesRepo;
 import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.DeliveryAddresses;
+import com.example.finalyearproject.Utility.ConsumerUtility;
+import com.example.finalyearproject.Utility.DeliveryAddressUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,14 +29,23 @@ public class ConsumerService {
     private PasswordEncoder passwordEncoder;
 
 
-    public Consumer RegisterConsumer(@Valid Consumer consumer) {
+    public ConsumerUtility RegisterConsumer(@Valid Consumer consumer) {
 
-        consumer.setConsumerPassword(passwordEncoder.encode(consumer.getConsumerPassword()));
-        return consumerRepo.save(consumer);
+        try {
+            consumer.setConsumerPassword(passwordEncoder.encode(consumer.getConsumerPassword()));
+            Consumer saved = consumerRepo.save(consumer);
+            return new ConsumerUtility(200,"Created",saved);
+        } catch (Exception e) {
+            return new ConsumerUtility(400,e.getMessage(),null);
+        }
     }
 
     public void UpdateConsumer(Consumer consumer, int id){
-        consumerRepo.updateConsumerByconsumerId(consumer, id);
+        try {
+            consumerRepo.updateConsumerByconsumerId(consumer, id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
@@ -48,16 +60,16 @@ public class ConsumerService {
             consumerRepo.save(consumer);
             return consumer.getSetOfDeliveryAddress();
         }
-        return null;
+        return Collections.emptySet();
     }
 
-    public DeliveryAddresses UpdateDeliveryAddress(DeliveryAddresses addresses,int consumerId,int addressId){
+    public DeliveryAddressUtility UpdateDeliveryAddress(DeliveryAddresses addresses,int consumerId,int addressId){
         if(addresses!=null && consumerId!=0 && addressId!=0){
             consumerRepo.updateDeliveryAddress(addresses,addressId,consumerId);
-            return deliveryAddressesRepo.findDeliveryAddressesByDeliveryAddressId(addressId);
-        }else{
-            return null;
+            DeliveryAddresses deliveryaddre = deliveryAddressesRepo.findDeliveryAddressesByDeliveryAddressId(addressId);
+            return new DeliveryAddressUtility(200,"Updated",deliveryaddre);
         }
+        return new DeliveryAddressUtility(400,"Failed to update",null);
     }
 
     public Set<DeliveryAddresses> DeleteDeliveryAddress(int addressId,int consumerId){
@@ -65,7 +77,7 @@ public class ConsumerService {
             consumerRepo.deleteDeliveryAddressById(addressId,consumerId);
             return consumerRepo.findConsumerByConsumerId(consumerId).getSetOfDeliveryAddress();
         }
-        return null;
+        return Collections.emptySet();
     }
 
 

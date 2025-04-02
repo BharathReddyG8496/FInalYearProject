@@ -2,6 +2,7 @@ package com.example.finalyearproject.Abstraction;
 
 import com.example.finalyearproject.DataStore.Farmer;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -9,11 +10,12 @@ import java.util.Optional;
 
 @EnableJpaRepositories
 public interface FarmerRepo extends JpaRepository<Farmer,Integer> {
-    public Optional<Farmer> findFarmerByFarmerEmail(String farmerName);
+     Optional<Farmer> findFarmerByFarmerEmail(String farmerName);
 
-    public Farmer findFarmerByFarmerId(int farmerId);
+     Optional<Farmer> findByFarmerId(int farmerId);
 
+    @Modifying
     @Query("update Farmer set farmerName=:#{#farmer.farmerName}, farmerAddress=:#{#farmer.farmerAddress}," +
             " farmerPhone=:#{#farmer.farmerPhone} where farmerId=:#{#farmerId}")
-    public void updateByFarmerId(Farmer farmer,int farmerId);
+     void updateByFarmerId(Farmer farmer,int farmerId);
 }
