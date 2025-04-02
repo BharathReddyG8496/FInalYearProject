@@ -19,6 +19,7 @@ public interface ProductRepo extends JpaRepository<Product,Integer> {
             ", p.stock=:#{#product.stock} where p.productId=:#{#productId} and p.farmer.farmerId=:#{#farmerId}")
     public void updateProductById(Product product,int productId, int farmerId);
 
+    @Modifying
     @Query("delete Product where productId=:#{#productId} and farmer.farmerId=:#{#farmerId}")
     public void deleteByProductId(int productId,int farmerId);
 }

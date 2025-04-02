@@ -13,23 +13,10 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public class Rating {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int RatingId;
-
-    /*
-    As these two attributes are FK, no need to specify it explicitly.
-    The Framework will create FK on its own, at that case these below provided
-    attributes might cause redundancy.
-
-    This(your approach) has to be done in case when the Framework is following lot more
-    Bare metal approach.
-     */
-    @NotNull(message = "Consumer ID cannot be null")
-    private int ConsumerId;
-//
-//    @NotNull(message = "Farmer ID cannot be null")
-//    private int FarmerId;
+    private int ratingId;
 
     @NotNull(message = "Score cannot be null")
     @Min(value = 1, message = "Score must be at least 1")
@@ -40,19 +27,27 @@ public class Rating {
     @Size(max = 500, message = "Comment cannot exceed 500 characters")
     private String Comment;
 
-    @PastOrPresent(message = "Timestamp must be in the past or present")
     private LocalDateTime timestamp;
 
-    private float farmersCurrentAvgRating;
-
-    @ManyToOne()
+    @ManyToOne
 //    @JoinColumn(name = "ConsumerId",insertable = false,updatable = false)
     @JsonBackReference("consumer-ratings")
     private Consumer consumer;
 
-    @ManyToOne()
-    @JsonBackReference("farmer-ratings")
+    @ManyToOne
+    @JsonBackReference("product-ratings")
 //    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
-    private Farmer farmer;
+    private Product product;
 
+    @Override
+    public String toString() {
+        return "Rating{" +
+                "ratingId=" + ratingId +
+                ", Score=" + Score +
+                ", Comment='" + Comment + '\'' +
+                ", timestamp=" + timestamp +
+                ", consumer=" + consumer +
+                ", product=" + product +
+                '}';
+    }
 }
