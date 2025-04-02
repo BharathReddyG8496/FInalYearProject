@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class FarmerService {
 
@@ -24,7 +26,8 @@ public class FarmerService {
 
     public Farmer UpdateFarmer(Farmer farmer,int farmerId){
         farmerRepo.updateByFarmerId(farmer,farmerId);
-        return this.farmerRepo.findFarmerByFarmerId(farmerId);
+        Optional<Farmer> byFarmerId = farmerRepo.findByFarmerId(farmerId);
+        return byFarmerId.orElse(null);
     }
 
 

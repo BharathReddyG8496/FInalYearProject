@@ -23,7 +23,7 @@ public class DeliveryAddresses {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "delivery_address_id", nullable = false)
-    private Long deliveryAddressId;
+    private int deliveryAddressId;
 
     @NotBlank(message = "Street address cannot be blank")
     @Size(max = 255, message = "Street address cannot exceed 255 characters")

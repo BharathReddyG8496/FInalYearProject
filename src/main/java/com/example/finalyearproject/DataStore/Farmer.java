@@ -7,12 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.validator.constraints.UniqueElements;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -35,6 +33,7 @@ public class Farmer implements UserDetails {
 
     @NotNull
     private String firstName;
+
     @NotNull
     private String lastName;
 
@@ -51,10 +50,6 @@ public class Farmer implements UserDetails {
     private String farmerAddress;
 
     @OneToMany(cascade = CascadeType.ALL)
-    @JsonManagedReference("farmer-ratings")
-    private Set<Rating> farmerRatings;
-
-    @OneToMany(cascade = CascadeType.ALL)
     @JsonManagedReference("farmer-donations")
     private Set<Donation> farmerDonations;
 
@@ -62,10 +57,15 @@ public class Farmer implements UserDetails {
     @JsonManagedReference("farmer-product")
     private Set<Product> farmerProducts;
 
+    // Aggregate rating fields
+    private Double totalRating = 0.0;
+    private Integer ratingCount = 0;
+    private Double averageRating = 0.0;
 
+    // UserDetails methods implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return null; // or your authorities implementation
     }
 
     @Override

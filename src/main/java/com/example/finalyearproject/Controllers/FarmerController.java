@@ -1,6 +1,7 @@
 package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
+import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.Farmer;
 import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.Model.JwtRequest;
@@ -19,6 +20,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/farmer")
@@ -41,6 +45,8 @@ public class FarmerController {
 
     @Autowired
     private ProductService productService;
+    @Autowired
+    private ProductRepo productRepo;
 
     @PostMapping("/register-farmer")
     public ResponseEntity<Farmer> RegisterFarmer(@Valid @RequestBody Farmer farmer){
@@ -82,6 +88,13 @@ public class FarmerController {
                 return ResponseEntity.ok(farmer1);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
+    @GetMapping("/get-all-products/{farmerId}")
+    public ResponseEntity<Set<Product>> GetAllProducts(@PathVariable("farmerId")int farmerId){
+        Optional<Farmer> byFarmerId = farmerRepo.findByFarmerId(farmerId);
+        return byFarmerId.map(farmer -> new ResponseEntity<>(farmer.getFarmerProducts(), HttpStatus.OK)).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+
     }
 
     private void doAuthenticate(String userEmail, String password) {

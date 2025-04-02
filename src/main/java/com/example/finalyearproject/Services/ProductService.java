@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -33,7 +34,7 @@ public class ProductService {
         if (product == null || farmerId == 0) {
             throw new IllegalArgumentException("Product or Farmer ID cannot be null/zero");
         }
-        Farmer farmer = farmerRepo.findFarmerByFarmerId(farmerId);
+        Farmer farmer= farmerRepo.findByFarmerId(farmerId).orElse(null);
         if (farmer == null) {
             throw new RuntimeException("Farmer not found with ID: " + farmerId);
         }
@@ -62,7 +63,6 @@ public class ProductService {
                 if (orderItem.getOrder().getOrderStatus().equals("CREATED")) {
                     Order order = orderItem.getOrder();
                     if (priceChange.equals("DEC")) {
-
                         orderItem.setFieldChange("The Price has been Decreased!!!");
                         orderItem.setUnitPrice(orderItem.getUnitPrice() - (priceChangeVal * orderItem.getQuantity()));
                         order.setTotalAmount(order.getTotalAmount() - (priceChangeVal * orderItem.getQuantity()));
@@ -88,8 +88,7 @@ public class ProductService {
                 }
             }
 
-            Product product1 = this.productRepo.findProductByProductId(productId);
-            return product1;
+            return this.productRepo.findProductByProductId(productId);
         }catch(Exception e){
             System.out.println(e.getMessage());
             return null;

@@ -22,8 +22,6 @@ public class OrderItem {
 //    @NotNull
 //    private int OrderId;
 
-    private String fieldChange;
-
     @NotNull(message = "Quantity cannot be null")
     private int Quantity;
 
@@ -37,6 +35,8 @@ public class OrderItem {
     @JsonBackReference("order-items")
 //    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
+
+    private String FieldChange;
 
     @ManyToOne()
     @JsonBackReference("order-product")
