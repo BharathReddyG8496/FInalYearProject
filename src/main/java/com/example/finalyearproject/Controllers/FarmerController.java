@@ -10,6 +10,7 @@ import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.FarmerService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Utility.FarmerUtility;
+import com.example.finalyearproject.Utility.ProductResponseUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,8 +22,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/farmer")
@@ -45,6 +49,7 @@ public class FarmerController {
 
     @Autowired
     private ProductService productService;
+
     @Autowired
     private ProductRepo productRepo;
 
@@ -84,16 +89,29 @@ public class FarmerController {
     public ResponseEntity<Optional<Farmer>> UpdateProduct(@Valid @RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
         if(farmerId!=0){
             Optional<Farmer> farmer1 = this.farmerService.UpdateFarmer(farmer,farmerId);
-            if(farmer1!=null)
+            if(farmer1.isPresent())
                 return ResponseEntity.ok(farmer1);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     @GetMapping("/get-all-products/{farmerId}")
-    public ResponseEntity<Set<Product>> GetAllProducts(@PathVariable("farmerId")int farmerId){
+    public ResponseEntity<Set<ProductResponseUtility>> GetAllProducts(@PathVariable("farmerId")int farmerId){
         Optional<Farmer> byFarmerId = farmerRepo.findByFarmerId(farmerId);
-        return byFarmerId.map(farmer -> new ResponseEntity<>(farmer.getFarmerProducts(), HttpStatus.OK)).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        if(byFarmerId.isPresent()){
+            Set<Product> farmerProducts = byFarmerId.get().getFarmerProducts();
+            Set<ProductResponseUtility> response = new HashSet<>();
+            for(Product product:farmerProducts){
+                response.add(ProductResponseUtility.builder().productId(product.getProductId()).
+                        description(product.getDescription()).stock(product.getStock()).price(product.getPrice()).name(product.getName()).category(product.getCategory().toString()).imageUrls(
+                                product.getImages().stream()
+                                        .map(img -> "http://localhost:8081" + img.getFilePath())
+                                        .collect(Collectors.toList())
+                        ).build());
+            }
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 
     }
 
@@ -114,6 +132,5 @@ public class FarmerController {
     public String exceptionHandler() {
         return "Credentials Invalid !!";
     }
-
 
 }

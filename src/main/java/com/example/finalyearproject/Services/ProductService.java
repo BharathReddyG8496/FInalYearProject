@@ -4,13 +4,13 @@ import com.example.finalyearproject.Abstraction.FarmerRepo;
 import com.example.finalyearproject.Abstraction.OrderItemRepo;
 import com.example.finalyearproject.Abstraction.OrderRepo;
 import com.example.finalyearproject.Abstraction.ProductRepo;
-import com.example.finalyearproject.DataStore.Farmer;
-import com.example.finalyearproject.DataStore.Order;
-import com.example.finalyearproject.DataStore.OrderItem;
-import com.example.finalyearproject.DataStore.Product;
+import com.example.finalyearproject.DataStore.*;
+import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -30,20 +30,32 @@ public class ProductService {
     @Autowired
     private OrderItemRepo orderItemRepo;
 
-    public Product AddProduct(Product product, int farmerId){
-        if (product == null || farmerId == 0) {
-            throw new IllegalArgumentException("Product or Farmer ID cannot be null/zero");
+    @Autowired
+    private ProductImageService productImageService;
+
+
+    @Transactional
+    public Product AddProduct(Product product, int farmerId, String categoryStr) {
+        if (product == null || farmerId == 0 || categoryStr == null || categoryStr.isEmpty()) {
+            throw new IllegalArgumentException("Product, Farmer ID, or category is missing");
         }
-        Farmer farmer= farmerRepo.findByFarmerId(farmerId).orElse(null);
-        if (farmer == null) {
-            throw new RuntimeException("Farmer not found with ID: " + farmerId);
-        }
+
+        Farmer farmer = farmerRepo.findByFarmerId(farmerId)
+                .orElseThrow(() -> new RuntimeException("Farmer not found with ID: " + farmerId));
         product.setFarmer(farmer);
+
+        try {
+            // Convert the String to CategoryType enum
+            CategoryType category = CategoryType.valueOf(categoryStr.toUpperCase());
+            product.setCategory(category);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid category: " + categoryStr);
+        }
+
         if (farmer.getFarmerProducts() == null) {
             farmer.setFarmerProducts(new HashSet<>());
         }
         farmer.getFarmerProducts().add(product);
-
         return productRepo.save(product);
     }
 
@@ -58,7 +70,7 @@ public class ProductService {
                     (prevProduct.getStock() < product.getStock()) ? "INC" : "";
 //        int stockChangeVal = Math.abs(prevProduct.getStock()- product.getStock());
 
-            Set<OrderItem> orderItems = prevProduct.getOrderItem();
+            Set<OrderItem> orderItems = prevProduct.getOrderItems();
             for (OrderItem orderItem : orderItems) {
                 if (orderItem.getOrder().getOrderStatus().equals("CREATED")) {
                     Order order = orderItem.getOrder();
@@ -95,9 +107,25 @@ public class ProductService {
         }
     }
 
-    public void DeleteProduct(int productId,int farmerId){
+    @Transactional
+    public void DeleteProduct(int productId, int farmerId) {
+        try {
+            // First, remove the image files from the file system.
+            productImageService.deleteAllImagesForProduct(productId);
+        } catch (IOException | ResourceNotFoundException ex) {
+            System.err.println("Error deleting image files: " + ex.getMessage());
+            // Depending on your needs, you might decide to cancel deletion or log and continue.
+        }
+//        // Now delete the product from the database.
+        Product product = productRepo.findByFarmer_FarmerIdAndProductId(productId, farmerId)
+                .orElseThrow(() -> new RuntimeException("Product not found with ID " + productId + " for farmer " + farmerId));
+//
+//        // Clear images from the product to trigger orphan removal.
+//        product.getImages().clear();
+//        productRepo.save(product);
 
-        this.productRepo.deleteByProductId(productId, farmerId);
+        // Delete the product; now, child product_image rows will have been removed.
+        productRepo.delete(product);
     }
 
 }

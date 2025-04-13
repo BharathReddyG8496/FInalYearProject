@@ -65,12 +65,12 @@ public class OrderService {
             orderItem.setUnitPrice(product.getPrice()*quantity);
             orderItem.setOrder(order);
             orderItem.setProduct(product);
-            if(product.getOrderItem() == null){
+            if(product.getOrderItems() == null){
                 Set<OrderItem> orderItemsSet = new HashSet<>();
                 orderItemsSet.add(orderItem);
-                product.setOrderItem(orderItemsSet);
+                product.setOrderItems(orderItemsSet);
             }else{
-                product.getOrderItem().add(orderItem);
+                product.getOrderItems().add(orderItem);
             }
 
             orderItemRepo.save(orderItem);
@@ -104,12 +104,12 @@ public class OrderService {
                         return new OrderUtility(400,"The entered quantity is exceeding the Stock of Product", null);
                     orderItem.setProduct(product);
 
-                    if(product.getOrderItem() == null){
+                    if(product.getOrderItems() == null){
                         Set<OrderItem> orderItemsSet = new HashSet<>();
                         orderItemsSet.add(orderItem);
-                        product.setOrderItem(orderItemsSet);
+                        product.setOrderItems(orderItemsSet);
                     }else{
-                        product.getOrderItem().add(orderItem);
+                        product.getOrderItems().add(orderItem);
                     }
                     orderItem.setQuantity(quantity);
                     //            product.setStock(product.getStock()-quantity);
@@ -147,7 +147,7 @@ public class OrderService {
             if (quantity >= orderItem.getQuantity()) {
                 order.setTotalAmount(order.getTotalAmount() - orderItem.getUnitPrice());
                 order.getOrderItems().remove(orderItem);
-                product.getOrderItem().remove(orderItem);
+                product.getOrderItems().remove(orderItem);
                 this.orderItemRepo.deleteByOrderItemId(orderItemId);
                 return new OrderUtility(200, "Removed the product from the cart", order.getOrderItems());
             }

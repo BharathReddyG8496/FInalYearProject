@@ -15,5 +15,4 @@ public class FarmerUtility {
     private int statusCode;
     private String message;
     private Farmer farmer ;
-
 }

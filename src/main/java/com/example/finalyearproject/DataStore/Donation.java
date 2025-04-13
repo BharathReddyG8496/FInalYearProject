@@ -18,18 +18,11 @@ public class Donation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int DonationId;
 
-//    @NotNull(message = "Consumer ID cannot be null")
-//    private int ConsumerId;
-//
-//    @NotNull(message = "Farmer ID cannot be null")
-//    private int FarmerId;
-
     @NotNull(message = "Donation amount cannot be null")
     @Positive(message = "Donation amount must be positive")
     private double Amount;
 
-    @NotNull(message = "Donation date cannot be null")
-    @PastOrPresent(message = "Donation date must be in the past or present")
+
     private LocalDateTime DonationDate;
 
     @NotBlank(message = "Payment method cannot be blank")
@@ -42,7 +35,6 @@ public class Donation {
 
     @ManyToOne()
     @JsonBackReference("farmer-donations")
-//    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Farmer farmer;
 
 }

@@ -32,8 +32,8 @@ public class RatingServices {
     // Helper method to update the farmer's aggregates incrementally on add/update/delete
     private void updateFarmerAggregates(Farmer farmer, double scoreDelta, int countDelta) {
         // Get current aggregates, ensuring they are not null
-        double currentTotal = farmer.getTotalRating() != null ? farmer.getTotalRating() : 0.0;
-        int currentCount = farmer.getRatingCount() != null ? farmer.getRatingCount() : 0;
+        double currentTotal = farmer.getTotalRating();
+        int currentCount = farmer.getRatingCount();
 
         currentTotal += scoreDelta;
         currentCount += countDelta;
@@ -45,6 +45,22 @@ public class RatingServices {
         farmer.setAverageRating(newAverage);
 
         farmerRepo.save(farmer);
+    }
+    private void updateProductAggregates(Product product, double scoreDelta, int countDelta) {
+        // Get current aggregates, ensuring they are not null
+        double currentTotal = product.getTotalRating();
+        int currentCount = product.getRatingCount();
+
+        currentTotal += scoreDelta;
+        currentCount += countDelta;
+
+        double newAverage = currentCount > 0 ? currentTotal / currentCount : 0.0;
+
+        product.setTotalRating(currentTotal);
+        product.setRatingCount(currentCount);
+        product.setAverageRating(newAverage);
+
+        productRepo.save(product);
     }
 
     @Transactional
@@ -62,6 +78,7 @@ public class RatingServices {
         if (farmer != null) {
             // Increment aggregates with the new rating's score
             updateFarmerAggregates(farmer, savedRating.getScore(), 1);
+            updateProductAggregates(product,savedRating.getScore(), 1);
         }
         return savedRating;
     }
@@ -84,10 +101,15 @@ public class RatingServices {
         existingRating.setComment(updatedRating.getComment());
         Rating savedRating = ratingRepo.save(existingRating);
 
-        Farmer farmer = savedRating.getProduct().getFarmer();
+        Product product = savedRating.getProduct();
+        Farmer farmer = product.getFarmer();
         if (farmer != null) {
             // Update aggregates: subtract the old score and add the new one (count remains unchanged)
             updateFarmerAggregates(farmer, savedRating.getScore() - oldScore, 0);
+            updateProductAggregates(product,savedRating.getScore() - oldScore, 0);
+
+
+
         }
 
         return savedRating;
@@ -101,13 +123,18 @@ public class RatingServices {
 
         Rating ratingToDelete = ratingRepo.findById(ratingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + ratingId));
-        Farmer farmer = ratingToDelete.getProduct().getFarmer();
+
+        Product product = ratingToDelete.getProduct();
+
+        Farmer farmer = product.getFarmer();
+
 
         ratingRepo.deleteById(ratingId);
 
         if (farmer != null) {
             // Subtract the rating's score and decrement the count
             updateFarmerAggregates(farmer, -ratingToDelete.getScore(), -1);
+            updateProductAggregates(product,-ratingToDelete.getScore(), -1);
         }
     }
 

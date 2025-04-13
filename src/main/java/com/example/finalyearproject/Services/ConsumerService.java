@@ -66,8 +66,8 @@ public class ConsumerService {
     public DeliveryAddressUtility UpdateDeliveryAddress(DeliveryAddresses addresses,int consumerId,int addressId){
         if(addresses!=null && consumerId!=0 && addressId!=0){
             consumerRepo.updateDeliveryAddress(addresses,addressId,consumerId);
-            DeliveryAddresses deliveryaddre = deliveryAddressesRepo.findDeliveryAddressesByDeliveryAddressId(addressId);
-            return new DeliveryAddressUtility(200,"Updated",deliveryaddre);
+            DeliveryAddresses deliveryAddress = deliveryAddressesRepo.findDeliveryAddressesByDeliveryAddressId(addressId);
+            return new DeliveryAddressUtility(200,"Updated",deliveryAddress);
         }
         return new DeliveryAddressUtility(400,"Failed to update",null);
     }

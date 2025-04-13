@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public interface OrderRepo extends JpaRepository<Order,Integer> {
 
     @Query("select o from Order o where o.orderStatus=:#{#status} and o.consumer.consumerId=:#{#consumerId}")
-    public Order findByStatusAndConsumerId(String status,int consumerId);
+     Order findByStatusAndConsumerId(String status,int consumerId);
 
     @Query("select o from Order o where o.consumer.consumerId=:#{#consumerId} and o.orderStatus='CREATED'")
-    public Order getConsumersCart(int consumerId);
+     Order getConsumersCart(int consumerId);
 
 }

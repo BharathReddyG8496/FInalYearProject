@@ -38,9 +38,9 @@ public class OrderItem {
 
     private String FieldChange;
 
-    @ManyToOne()
+    @ManyToOne
+    @JoinColumn(name = "product_id") // explicitly specify join column, if needed.
     @JsonBackReference("order-product")
-//    @JoinColumn(name = "ProductId",insertable = false,updatable = false)
     private Product product;
 
 }

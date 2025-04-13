@@ -13,11 +13,11 @@ import org.springframework.data.repository.query.Param;
 public interface OrderItemRepo extends JpaRepository<OrderItem, Integer> {
 
     @Query("select o from OrderItem o where o.order.consumer.consumerId=:#{#consumerId} and o.order.orderStatus='CREATED' and o.OrderItemId=:#{#orderItemId}")
-    public OrderItem findOrderItemWithStatusCREATED(int consumerId,int orderItemId);
+     OrderItem findOrderItemWithStatusCREATED(int consumerId,int orderItemId);
 
     @Modifying
     @Transactional
     @Query("delete from OrderItem o where o.OrderItemId=:#{#orderItemId}")
-    public void deleteByOrderItemId(int orderItemId);
+     void deleteByOrderItemId(int orderItemId);
 
 }

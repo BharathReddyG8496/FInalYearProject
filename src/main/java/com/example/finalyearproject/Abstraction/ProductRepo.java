@@ -1,11 +1,15 @@
 package com.example.finalyearproject.Abstraction;
 
+import com.example.finalyearproject.DataStore.CategoryType;
 import com.example.finalyearproject.DataStore.Product;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+import java.util.List;
+import java.util.Optional;
 
 @EnableJpaRepositories
 public interface ProductRepo extends JpaRepository<Product,Integer> {
@@ -22,4 +26,10 @@ public interface ProductRepo extends JpaRepository<Product,Integer> {
     @Modifying
     @Query("delete Product where productId=:#{#productId} and farmer.farmerId=:#{#farmerId}")
     public void deleteByProductId(int productId,int farmerId);
+
+    List<Product> findByCategory(CategoryType category);
+
+
+
+    Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
 }

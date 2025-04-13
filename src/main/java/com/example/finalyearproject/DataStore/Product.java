@@ -42,16 +42,31 @@ public class Product {
     @Min(value = 0)
     private int stock;
 
-    @ManyToOne()
+    @ManyToOne
+    @JoinColumn(name = "farmer_id", nullable = false)
     @JsonBackReference("farmer-product")
     private Farmer farmer;
+
 
     @OneToMany(mappedBy = "product",cascade=CascadeType.ALL)
     @JsonManagedReference("product-ratings")
     private Set<Rating> ratings = new HashSet<>();
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     @JsonManagedReference("order-product")
-    private Set<OrderItem> orderItem;
+    private Set<OrderItem> orderItems;
 
+    // One product can have multiple images.
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("product-images")
+    private Set<ProductImage> images = new HashSet<>();
+
+    @NotNull(message = "Category is required")
+    @Enumerated(EnumType.STRING)
+    private CategoryType category;
+
+    // Aggregate rating fields
+    private Double totalRating = 0.0;
+    private Integer ratingCount = 0;
+    private Double averageRating = 0.0;
 }

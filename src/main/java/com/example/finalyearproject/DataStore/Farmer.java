@@ -11,6 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -53,9 +54,10 @@ public class Farmer implements UserDetails {
     @JsonManagedReference("farmer-donations")
     private Set<Donation> farmerDonations;
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "farmer", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("farmer-product")
-    private Set<Product> farmerProducts;
+    private Set<Product> farmerProducts = new HashSet<>();
+
 
     // Aggregate rating fields
     private Double totalRating = 0.0;
