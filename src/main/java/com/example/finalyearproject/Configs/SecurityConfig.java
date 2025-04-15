@@ -45,7 +45,11 @@ public class SecurityConfig{
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/consumer/**","/farmer/**","/products/**","/order/**","/checkout/**","/rating/**").permitAll()
-                        .requestMatchers("/test").authenticated()
+                        .requestMatchers("/test").authenticated() .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))

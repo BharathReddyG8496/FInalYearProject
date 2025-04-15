@@ -3,6 +3,7 @@ package com.example.finalyearproject.Controllers;
 import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.CategoryType;
 import com.example.finalyearproject.DataStore.Product;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,7 @@ import java.util.List;
 @RequestMapping("/categories")
 public class CategoryController {
 
+    @Autowired
     private ProductRepo productRepo;
 
     @GetMapping("/get-category-items/{category}")
