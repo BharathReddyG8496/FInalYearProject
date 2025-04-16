@@ -37,40 +37,6 @@ public class ConsumerController {
     @Autowired
     private ConsumerService consumerService;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
-
-    @Autowired
-    private JwtHelper jwtHelper;
-
-    @Autowired
-    private AuthenticationManager manager;
-
-
-    @PostMapping(path = "/create-consumer",consumes = "application/json")
-    public ResponseEntity<ConsumerUtility> RegisterConsumer(@Valid @RequestBody Consumer consumer){
-        System.out.println("consumer"+consumer.getConsumerFirstName());
-        ConsumerUtility consumer1 = this.consumerService.RegisterConsumer(consumer);
-        if(consumer1!=null)
-            return ResponseEntity.ok(consumer1);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-    }
-
-    @RequestMapping(value = "/login-consumer",method = {RequestMethod.POST,RequestMethod.GET})
-    public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
-
-        this.doAuthenticate(request.getUserEmail(), request.getUserPassword());
-
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUserEmail());
-        String token = this.jwtHelper.generateToken(userDetails);
-
-        JwtResponse response = JwtResponse.builder()
-                .jwtToken(token)
-                .userName(userDetails.getUsername()).build();
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
     @PostMapping("/update-consumer/{id}")
     public ResponseEntity<String> updateConsumer(@RequestBody Consumer consumer, @PathVariable int id){
         try {
@@ -116,18 +82,7 @@ public class ConsumerController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    private void doAuthenticate(String userName, String password) {
 
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userName, password);
-        try {
-            manager.authenticate(authentication);
-
-
-        } catch (BadCredentialsException e) {
-            throw new BadCredentialsException(" Invalid Admin_name or Password  !!");
-        }
-
-    }
 
     @ExceptionHandler(BadCredentialsException.class)
     public String exceptionHandler() {

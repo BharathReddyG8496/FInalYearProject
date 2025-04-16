@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
@@ -36,96 +37,43 @@ public class FarmerController {
     private FarmerRepo farmerRepo;
 
     @Autowired
-    private UserDetailsService userDetailsService;
-
-    @Autowired
-    private JwtHelper jwtHelper;
-
-    @Autowired
-    private AuthenticationManager manager;
-
-    @Autowired
     private FarmerService farmerService;
-
-    @Autowired
-    private ProductService productService;
-
-    @Autowired
-    private ProductRepo productRepo;
-
-    @PostMapping("/register-farmer")
-    public ResponseEntity<FarmerUtility> RegisterFarmer(@Valid @RequestBody Farmer farmer){
-        if(farmer==null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-        return ResponseEntity.ok(this.farmerService.RegisterFarmer(farmer));
-    }
-
-    @RequestMapping(value = "/login-farmer",method = {RequestMethod.POST,RequestMethod.GET})
-    public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest request) {
-
-        this.doAuthenticate(request.getUserEmail(), request.getUserPassword());
-
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUserEmail());
-        String userName="";
-        try{
-            userName = this.farmerRepo.findFarmerByFarmerEmail(request.getUserEmail()).orElseThrow().getFarmerName();
-
-        }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.valueOf("Incorrect credentials")).build();
-        }
-        String token = this.jwtHelper.generateToken(userDetails);
-
-        JwtResponse response = JwtResponse.builder()
-                .jwtToken(token)
-                .userName(userName).build();
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
 
     // update-farmer
     @PutMapping("/update-farmer/{farmerId}")
-    public ResponseEntity<Optional<Farmer>> UpdateProduct(@Valid @RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
-        if(farmerId!=0){
-            Optional<Farmer> farmer1 = this.farmerService.UpdateFarmer(farmer,farmerId);
+    public ResponseEntity<Optional<Farmer>> UpdateFarmer(@Valid @RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
+        String FarmerName = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println(FarmerName);
+        try{
+            Optional<Farmer> farmer1 = this.farmerService.UpdateFarmer(farmer,FarmerName);
             if(farmer1.isPresent())
                 return ResponseEntity.ok(farmer1);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    @GetMapping("/get-all-products/{farmerId}")
-    public ResponseEntity<Set<ProductResponseUtility>> GetAllProducts(@PathVariable("farmerId")int farmerId){
-        Optional<Farmer> byFarmerId = farmerRepo.findByFarmerId(farmerId);
-        if(byFarmerId.isPresent()){
-            Set<Product> farmerProducts = byFarmerId.get().getFarmerProducts();
-            Set<ProductResponseUtility> response = new HashSet<>();
-            for(Product product:farmerProducts){
-                response.add(ProductResponseUtility.builder().productId(product.getProductId()).
-                        description(product.getDescription()).stock(product.getStock()).price(product.getPrice()).name(product.getName()).category(product.getCategory().toString()).imageUrls(
-                                product.getImages().stream()
-                                        .map(img -> "http://localhost:8081" + img.getFilePath())
-                                        .collect(Collectors.toList())
-                        ).build());
-            }
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    @GetMapping("/get-all-farmer-products")
+    public ResponseEntity<?> GetAllProducts(){
+        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+       try{
+           Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
+           Set<Product> farmerProducts = byFarmerEmail.getFarmerProducts();
+           Set<ProductResponseUtility> response = new HashSet<>();
+           for(Product product:farmerProducts){
+               response.add(ProductResponseUtility.builder().productId(product.getProductId()).
+                       description(product.getDescription()).stock(product.getStock()).price(product.getPrice()).name(product.getName()).category(product.getCategory().toString()).imageUrls(
+                               product.getImages().stream()
+                                       .map(img -> "http://localhost:8081" + img.getFilePath())
+                                       .collect(Collectors.toList())
+                       ).build());
+           }
+           return new ResponseEntity<>(response, HttpStatus.OK);
 
-    }
-
-    private void doAuthenticate(String userEmail, String password) {
-
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userEmail, password);
-        try {
-            manager.authenticate(authentication);
-
-
-        } catch (BadCredentialsException e) {
-            throw new BadCredentialsException(" Invalid Admin_name or Password  !!");
-        }
-
+       }catch (Exception e){
+           return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+       }
     }
 
     @ExceptionHandler(BadCredentialsException.class)

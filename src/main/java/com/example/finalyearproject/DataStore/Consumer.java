@@ -27,10 +27,11 @@ public class Consumer implements UserDetails {
 
     @NotBlank(message = "First Name cannot be blank")
     private String consumerFirstName;
+
+    @NotBlank(message = "Last Name cannot be blank")
     private String consumerLastName;
 
-    @NotNull(message = "UserName cannot be blank")
-    private String consumerName;
+    @NotBlank(message = "Password cannot be blank")
     private String consumerPassword;
 
     @NotBlank(message = "Email cannot be blank")
@@ -42,6 +43,9 @@ public class Consumer implements UserDetails {
     @Pattern(regexp = "^(\\+91|0)?\\d{10}$")
     @Column(unique = true)
     private String consumerPhone;
+
+    private String profilePhotoPath;
+
 
     @NotBlank(message = "Address cannot be blank")
     @Size(max = 255, message = "Address cannot exceed 255 characters")
@@ -73,10 +77,17 @@ public class Consumer implements UserDetails {
     public String getPassword() {
         return this.consumerPassword;
     }
+    public String getFarmerName() {
+        // If firstName or lastName is null, avoid NullPointerException
+        if(consumerFirstName == null || consumerLastName == null) {
+            return null;
+        }
+        return consumerFirstName.concat(consumerLastName);
+    }
 
     @Override
     public String getUsername() {
-        return this.consumerName;
+        return getFarmerName();
     }
 
     @Override

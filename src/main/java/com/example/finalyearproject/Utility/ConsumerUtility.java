@@ -14,6 +14,4 @@ public class ConsumerUtility  {
     private int statusCode;
     private String message;
     private Consumer consumer;
-
-
 }

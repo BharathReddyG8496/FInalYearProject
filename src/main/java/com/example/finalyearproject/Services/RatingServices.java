@@ -64,9 +64,8 @@ public class RatingServices {
     }
 
     @Transactional
-    public Rating addRating(Rating rating, int consumerId, int productId) throws ResourceNotFoundException {
-        Consumer consumer = consumerRepo.findById(consumerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Consumer not found with ID: " + consumerId));
+    public Rating addRating(Rating rating, String consumerEmail, int productId) throws ResourceNotFoundException {
+        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
 
@@ -84,15 +83,14 @@ public class RatingServices {
     }
 
     @Transactional
-    public Rating updateRating(Rating updatedRating, int consumerId) throws ResourceNotFoundException {
-        Consumer consumer = consumerRepo.findById(consumerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Consumer not found with ID: " + consumerId));
+    public Rating updateRating(Rating updatedRating, String consumerEmail) throws ResourceNotFoundException {
+        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
 
         Rating existingRating = ratingRepo.findById(updatedRating.getRatingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + updatedRating.getRatingId()));
 
-        if (existingRating.getConsumer() == null || existingRating.getConsumer().getConsumerId() != consumerId) {
-            throw new IllegalArgumentException("Rating does not belong to consumer with ID: " + consumerId);
+        if (existingRating.getConsumer() == null || existingRating.getConsumer().getConsumerId() != consumer.getConsumerId()) {
+            throw new IllegalArgumentException("Rating does not belong to consumer with ID: " + consumer.getConsumerId());
         }
 
         // Capture the old score to determine the delta
@@ -116,9 +114,10 @@ public class RatingServices {
     }
 
     @Transactional
-    public void deleteRating(int ratingId, int consumerId) throws ResourceNotFoundException {
-        if (!ratingRepo.existsByConsumer_ConsumerIdAndRatingId(consumerId, ratingId)) {
-            throw new ResourceNotFoundException("Rating not found with ID: " + ratingId + " for consumer ID: " + consumerId);
+    public void deleteRating(int ratingId, String consumerEmail) throws ResourceNotFoundException {
+        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+        if (!ratingRepo.existsByConsumer_ConsumerIdAndRatingId(consumer.getConsumerId(), ratingId)) {
+            throw new ResourceNotFoundException("Rating not found with ID: " + ratingId + " for consumer ID: " + consumer.getConsumerId());
         }
 
         Rating ratingToDelete = ratingRepo.findById(ratingId)
@@ -138,11 +137,6 @@ public class RatingServices {
         }
     }
 
-    public Set<Rating> getConsumerRatings(int consumerId) {
-        Consumer consumer = consumerRepo.findById(consumerId)
-                .orElseThrow(() -> new IllegalArgumentException("Consumer not found with ID: " + consumerId));
-        return consumer.getConsumerRatings();
-    }
 
     @Transactional
     public Set<Rating> getProductRatings(int productId) {

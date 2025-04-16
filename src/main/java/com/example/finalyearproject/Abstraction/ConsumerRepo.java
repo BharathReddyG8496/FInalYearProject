@@ -21,7 +21,7 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
     @Modifying
     @Transactional
     @Query(value = "update Consumer set consumer_First_Name=:#{#consumer.consumerFirstName}, consumer_Last_Name=:#{#consumer.consumerLastName}, " +
-            "consumer_Name=:#{#consumer.consumerName}, consumer_Phone=:#{#consumer.consumerPhone}, consumer_Address=:#{#consumer.consumerAddress} where consumer_Id=:#{#id}",nativeQuery = true)
+            "consumer_Phone=:#{#consumer.consumerPhone}, consumer_Address=:#{#consumer.consumerAddress} where consumer_Id=:#{#id}",nativeQuery = true)
      void updateConsumerByconsumerId(Consumer consumer,int id);
 
     @Modifying
@@ -35,8 +35,7 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
     @Query("delete from DeliveryAddresses where deliveryAddressId=:#{#addressId} and consumer.consumerId=:#{#consumerId}")
      void deleteDeliveryAddressById(int addressId,int consumerId);
 
+    Consumer findByConsumerEmail(String consumerEmail);
 
-     Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);
-
-
+    Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);
 }

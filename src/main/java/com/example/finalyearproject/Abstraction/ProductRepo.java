@@ -29,7 +29,5 @@ public interface ProductRepo extends JpaRepository<Product,Integer> {
 
     List<Product> findByCategory(CategoryType category);
 
-
-
     Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
 }

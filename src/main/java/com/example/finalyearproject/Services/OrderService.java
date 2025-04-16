@@ -43,8 +43,7 @@ public class OrderService {
         }
         Order order;
         OrderItem orderItem;
-        var testing = consumer.getConsumerOrder();
-        if(consumer.getConsumerOrder().isEmpty()){
+            if(consumer.getConsumerOrder().isEmpty()){
             Set<Order> orders = new HashSet<>();
             order = new Order();
             order.setConsumer(consumer);

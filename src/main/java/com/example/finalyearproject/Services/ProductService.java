@@ -5,15 +5,13 @@ import com.example.finalyearproject.Abstraction.OrderItemRepo;
 import com.example.finalyearproject.Abstraction.OrderRepo;
 import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.*;
+import com.example.finalyearproject.Utility.ProductUpdateDTO;
+import com.example.finalyearproject.Utility.ProductUtility;
 import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 
 @Service
 public class ProductService {
@@ -34,81 +32,123 @@ public class ProductService {
     private ProductImageService productImageService;
 
 
+
     @Transactional
-    public Product AddProduct(Product product, int farmerId, String categoryStr) {
-        if (product == null || farmerId == 0 || categoryStr == null || categoryStr.isEmpty()) {
-            throw new IllegalArgumentException("Product, Farmer ID, or category is missing");
-        }
-
-        Farmer farmer = farmerRepo.findByFarmerId(farmerId)
-                .orElseThrow(() -> new RuntimeException("Farmer not found with ID: " + farmerId));
-        product.setFarmer(farmer);
-
+    public Product AddProduct(ProductUtility prodUtil, String farmerEmail) {
         try {
-            // Convert the String to CategoryType enum
-            CategoryType category = CategoryType.valueOf(categoryStr.toUpperCase());
-            product.setCategory(category);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid category: " + categoryStr);
-        }
+            Product product = new Product();
+            product.setName(prodUtil.getName());
+            product.setDescription(prodUtil.getDescription());
+            product.setPrice(prodUtil.getPrice());
+            product.setStock(prodUtil.getStock());
+            try {
+                // Convert the String to CategoryType enum
+                CategoryType category = CategoryType.valueOf(prodUtil.getCategory().toUpperCase());
+                product.setCategory(category);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid category: " + prodUtil.getCategory());
+            }
+            Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
+            product.setFarmer(farmer);
+            farmer.getFarmerProducts().add(product);
+            Product storedProduct = productRepo.save(product);
 
-        if (farmer.getFarmerProducts() == null) {
-            farmer.setFarmerProducts(new HashSet<>());
-        }
-        farmer.getFarmerProducts().add(product);
-        return productRepo.save(product);
-    }
 
-    public Product UpdateProduct(Product product,int productId, int farmerId){
-        try {
-            Product prevProduct = this.productRepo.findProductByProductId(productId);
-            this.productRepo.updateProductById(product, productId,farmerId);
-            String priceChange = (prevProduct.getPrice() > product.getPrice()) ? "DEC" :
-                    (prevProduct.getPrice() < product.getPrice()) ? "INC" : "";
-            double priceChangeVal = Math.abs(prevProduct.getPrice() - product.getPrice());
-            String stockChange = (prevProduct.getStock() > product.getStock()) ? "DEC" :
-                    (prevProduct.getStock() < product.getStock()) ? "INC" : "";
-//        int stockChangeVal = Math.abs(prevProduct.getStock()- product.getStock());
-
-            Set<OrderItem> orderItems = prevProduct.getOrderItems();
-            for (OrderItem orderItem : orderItems) {
-                if (orderItem.getOrder().getOrderStatus().equals("CREATED")) {
-                    Order order = orderItem.getOrder();
-                    if (priceChange.equals("DEC")) {
-                        orderItem.setFieldChange("The Price has been Decreased!!!");
-                        orderItem.setUnitPrice(orderItem.getUnitPrice() - (priceChangeVal * orderItem.getQuantity()));
-                        order.setTotalAmount(order.getTotalAmount() - (priceChangeVal * orderItem.getQuantity()));
-                    } else if (priceChange.equals("INC")) {
-                        orderItem.setFieldChange("The Price has been Increased!!!");
-                        orderItem.setUnitPrice(orderItem.getUnitPrice() + (priceChangeVal * orderItem.getQuantity()));
-                        order.setTotalAmount(order.getTotalAmount() + (priceChangeVal * orderItem.getQuantity()));
-                    }
-                    if (stockChange.equals("DEC")) {
-                        orderItem.setFieldChange(orderItem.getFieldChange()+" AND The Stocks has been Decreased!!!");
-                        if (orderItem.getQuantity() > product.getStock()) {
-                            int stockChangeVal = Math.abs(orderItem.getQuantity() - product.getStock());
-                            double priceChangeValForStock = stockChangeVal * product.getPrice();
-                            orderItem.setQuantity(orderItem.getQuantity() - stockChangeVal);
-                            orderItem.setUnitPrice(orderItem.getUnitPrice() - priceChangeValForStock);
-                            order.setTotalAmount(order.getTotalAmount() - priceChangeValForStock);
-                        }
-                    } else if (stockChange.equals("INC")) {
-                        orderItem.setFieldChange(orderItem.getFieldChange()+" AND The Stocks has been Increased!!! You can add still more products to your cart.");
-                    }
-                    this.orderItemRepo.save(orderItem);
-                    this.orderRepo.save(order);
+            // If image files are provided, process the upload.
+            if (prodUtil.getImages() != null && prodUtil.getImages().length > 0) {
+                try {
+                    productImageService.uploadProductImages(storedProduct.getProductId(), prodUtil.getImages());
+                } catch (Exception e) {
+                    // Here you could roll back the product insert or just return an error.
+                    throw new RuntimeException(e);
                 }
             }
+            return storedProduct;
 
-            return this.productRepo.findProductByProductId(productId);
-        }catch(Exception e){
-            System.out.println(e.getMessage());
-            return null;
+        }catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Transactional
-    public void DeleteProduct(int productId, int farmerId) {
+    public Product updateProduct(ProductUpdateDTO dto, int productId, String farmerEmail) {
+        // Retrieve the existing product
+        Product existingProduct = productRepo.findProductByProductId(productId);
+        if (existingProduct == null) {
+            throw new RuntimeException("Product not found.");
+        }
+
+        // Retrieve the authenticated farmer
+        Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
+        if (farmer == null) {
+            throw new RuntimeException("Farmer not found.");
+        }
+
+        // Optionally, verify that the product belongs to this farmer
+        if (!existingProduct.getFarmer().getFarmerEmail().equalsIgnoreCase(farmerEmail)) {
+            throw new RuntimeException("Unauthorized update attempt.");
+        }
+
+        // Save old values for later order adjustment
+        double oldPrice = existingProduct.getPrice();
+        int oldStock = existingProduct.getStock();
+
+        // New values from DTO
+        double newPrice = dto.getPrice();
+        int newStock = dto.getStock();
+
+        // Update product fields from DTO
+        existingProduct.setName(dto.getName());
+        existingProduct.setDescription(dto.getDescription());
+        existingProduct.setPrice(newPrice);
+        existingProduct.setStock(newStock);
+        existingProduct.setCategory(dto.getCategory());
+
+        // Save updated product first
+        productRepo.save(existingProduct);
+
+        // Adjust associated order items (only for orders with status "CREATED")
+        if (existingProduct.getOrderItems() != null && !existingProduct.getOrderItems().isEmpty()) {
+            for (OrderItem item : existingProduct.getOrderItems()) {
+                Order order = item.getOrder();
+                if (!"CREATED".equals(order.getOrderStatus())) {
+                    continue;
+                }
+
+                StringBuilder changeMsg = new StringBuilder();
+
+                // Update price if changed
+                if (oldPrice != newPrice) {
+                    double delta = (newPrice - oldPrice) * item.getQuantity();
+                    item.setUnitPrice(item.getUnitPrice() + delta);
+                    order.setTotalAmount(order.getTotalAmount() + delta);
+                    changeMsg.append(oldPrice < newPrice ? "Price Increased" : "Price Decreased");
+                }
+
+                // Update stock if changed and current order quantity exceeds the new stock
+                if (oldStock != newStock && item.getQuantity() > newStock) {
+                    int removedQty = item.getQuantity() - newStock;
+                    double deduct = removedQty * newPrice;
+                    item.setQuantity(newStock);
+                    item.setUnitPrice(item.getUnitPrice() - deduct);
+                    order.setTotalAmount(order.getTotalAmount() - deduct);
+                    changeMsg.append(" | Stock Reduced");
+                }
+
+                item.setFieldChange(changeMsg.toString());
+                orderItemRepo.save(item);
+                orderRepo.save(order);
+            }
+        }
+
+        // Return the updated product (if necessary, re-fetch from the repo)
+        return productRepo.findProductByProductId(productId);
+    }
+
+
+    @Transactional
+    public void DeleteProduct(int productId, String farmerEmail) {
+        Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
         try {
             // First, remove the image files from the file system.
             productImageService.deleteAllImagesForProduct(productId);
@@ -117,8 +157,8 @@ public class ProductService {
             // Depending on your needs, you might decide to cancel deletion or log and continue.
         }
 //        // Now delete the product from the database.
-        Product product = productRepo.findByFarmer_FarmerIdAndProductId(productId, farmerId)
-                .orElseThrow(() -> new RuntimeException("Product not found with ID " + productId + " for farmer " + farmerId));
+        Product product = productRepo.findByFarmer_FarmerIdAndProductId(productId, byFarmerEmail.getFarmerId())
+                .orElseThrow(() -> new RuntimeException("Product not found with ID " + productId + " for farmer " + byFarmerEmail.getFarmerName()));
 //
 //        // Clear images from the product to trigger orphan removal.
 //        product.getImages().clear();

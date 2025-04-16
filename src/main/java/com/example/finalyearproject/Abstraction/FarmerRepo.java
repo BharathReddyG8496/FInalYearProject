@@ -12,10 +12,13 @@ import java.util.Optional;
 public interface FarmerRepo extends JpaRepository<Farmer,Integer> {
      Optional<Farmer> findFarmerByFarmerEmail(String farmerName);
 
+
      Optional<Farmer> findByFarmerId(int farmerId);
 
     @Modifying
-    @Query("update Farmer set farmerName=:#{#farmer.farmerName}, farmerAddress=:#{#farmer.farmerAddress}," +
+    @Query("update Farmer set firstName=:#{#farmer.firstName}, lastName=:#{#farmer.lastName}, farmerAddress=:#{#farmer.farmerAddress}," +
             " farmerPhone=:#{#farmer.farmerPhone} where farmerId=:#{#farmerId}")
      void updateByFarmerId(Farmer farmer,int farmerId);
+
+    Farmer findByFarmerEmail(String farmerEmail);
 }

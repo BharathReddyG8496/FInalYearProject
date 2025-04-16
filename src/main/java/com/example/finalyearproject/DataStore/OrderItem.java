@@ -19,21 +19,15 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int OrderItemId;
 
-//    @NotNull
-//    private int OrderId;
-
     @NotNull(message = "Quantity cannot be null")
     private int Quantity;
 
-//    @NotNull(message = "ProductId cannot be null")
-//    private int ProductId;
 
     @NotNull(message = "UnitPrice cannot be null")
     private double UnitPrice;
 
     @ManyToOne()
     @JsonBackReference("order-items")
-//    @JoinColumn(name = "OrderId",insertable = false,updatable = false)
     private Order order;
 
     private String FieldChange;

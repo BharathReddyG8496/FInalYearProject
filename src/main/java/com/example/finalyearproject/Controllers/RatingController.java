@@ -1,6 +1,8 @@
 package com.example.finalyearproject.Controllers;
 
 
+import com.example.finalyearproject.Abstraction.ConsumerRepo;
+import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.Rating;
 import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
@@ -8,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -20,20 +23,25 @@ public class RatingController {
     @Autowired
     private RatingServices ratingServices;
 
-    @PostMapping("/add-rating/{consumerId}/{productId}")
-    public ResponseEntity<?> addRating(@Valid @RequestBody Rating rating, @PathVariable("consumerId") int consumerId, @PathVariable("productId") int productId){
+    @Autowired
+    private ConsumerRepo consumerRepo;
+
+    @PostMapping("/add-rating/{productId}")
+    public ResponseEntity<?> addRating(@Valid @RequestBody Rating rating,@PathVariable("productId") int productId){
+        String consumerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         try {
             rating.setTimestamp(LocalDateTime.now());
-            return new ResponseEntity<>(ratingServices.addRating(rating, consumerId, productId), HttpStatus.CREATED);
+            return new ResponseEntity<>(ratingServices.addRating(rating, consumerEmail, productId), HttpStatus.CREATED);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
-    @PutMapping("/edit-rating/{consumerId}")
-    public ResponseEntity<?> updateRating(@Valid @RequestBody Rating rating, @PathVariable int  consumerId){
+    @PutMapping("/edit-rating")
+    public ResponseEntity<?> updateRating(@Valid @RequestBody Rating rating){
+        String consumerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         try {
-           return new ResponseEntity<>( ratingServices.updateRating(rating,consumerId),HttpStatus.OK);
+           return new ResponseEntity<>( ratingServices.updateRating(rating,consumerEmail),HttpStatus.OK);
         }catch (Exception e){
             System.out.println(e.getMessage());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -42,30 +50,24 @@ public class RatingController {
 
     @DeleteMapping("/delete-rating/{consumerId}/{ratingId}")
     public ResponseEntity<?> deleteRating(@PathVariable int ratingId, @PathVariable int  consumerId){
+        String consumerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         try {
-            ratingServices.deleteRating(ratingId,consumerId);
+            ratingServices.deleteRating(ratingId,consumerEmail);
            return new ResponseEntity<>(HttpStatus.OK);
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-    @GetMapping("/get-consumer-ratings/{consumerId}")
-    public ResponseEntity<?> getConsumerRatings(@PathVariable int consumerId){
-       try {
-           Set<Rating> consumerRatings = ratingServices.getConsumerRatings(consumerId);
+    @GetMapping("/get-consumer-ratings/")
+    public ResponseEntity<?> getConsumerRatings(){
+        Consumer consumer = consumerRepo.findByConsumerEmail(SecurityContextHolder.getContext().getAuthentication().getName());
+        try {
+           Set<Rating> consumerRatings = consumer.getConsumerRatings();
            return ResponseEntity.ok(consumerRatings);
        }catch (IllegalArgumentException e){
            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
        }
     }
-    @GetMapping("/get-product-ratings/{productId}")
-    public ResponseEntity<?> getProductRatings(@PathVariable int productId){
-        try {
-            Set<Rating> productRatings = ratingServices.getProductRatings(productId);
-            return ResponseEntity.ok(productRatings);
-        }catch (IllegalArgumentException e){
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-    }
+
 }

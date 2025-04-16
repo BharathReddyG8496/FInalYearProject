@@ -24,17 +24,16 @@ public class Farmer implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int farmerId;
 
-    @NotBlank(message = "Name cannot be null")
-    private String farmerName;
-
     @NotBlank(message = "Email cannot be blank")
     @Email(message = "Invalid email format")
     @Column(unique = true)
     private String farmerEmail;
 
+    @NotBlank(message = "First name cannot be null")
     @NotNull
     private String firstName;
 
+    @NotBlank(message = "Last name cannot be null")
     @NotNull
     private String lastName;
 
@@ -49,6 +48,9 @@ public class Farmer implements UserDetails {
     @NotBlank(message = "Address cannot be null")
     @Size(max = 255)
     private String farmerAddress;
+
+    private String profilePhotoPath;
+
 
     @OneToMany(cascade = CascadeType.ALL)
     @JsonManagedReference("farmer-donations")
@@ -77,7 +79,15 @@ public class Farmer implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.farmerName;
+        return getFarmerName();
+    }
+
+    public String getFarmerName() {
+        // If firstName or lastName is null, avoid NullPointerException
+        if(firstName == null || lastName == null) {
+            return null;
+        }
+        return firstName.concat(lastName);
     }
 
     @Override

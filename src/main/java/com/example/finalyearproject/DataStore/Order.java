@@ -18,6 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Table(name = "orders")
 public class Order {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int OrderId;
@@ -25,13 +26,13 @@ public class Order {
 //    private int ConsumerId;
 
 //    @NotNull(message ="Date cannot be null")
-    private LocalDateTime OrderDate;
+      private LocalDateTime OrderDate;
 
 //    @NotNull(message = "Amount can not be null")
 //    @Positive
-    private double TotalAmount;
+     private double TotalAmount;
 
-    private String orderStatus;
+     private String orderStatus;
 
     @ManyToOne()
     @JsonBackReference("consumer-order")
