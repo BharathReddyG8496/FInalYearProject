@@ -22,6 +22,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private Logger logger = LoggerFactory.getLogger(OncePerRequestFilter.class);
+
     @Autowired
     private JwtHelper jwtHelper;
 
@@ -98,5 +99,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     }
-
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return path.contains("/swagger-ui") ||
+                path.contains("/v3/api-docs") ||
+                path.contains("/swagger-resources") ||
+                path.contains("/webjars");
+    }
 }

@@ -1,6 +1,8 @@
 package com.example.finalyearproject.Configs;
 
 import com.example.finalyearproject.Abstraction.ConsumerRepo;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.models.OpenAPI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

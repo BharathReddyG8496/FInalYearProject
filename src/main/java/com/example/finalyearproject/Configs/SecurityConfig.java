@@ -44,11 +44,14 @@ public class SecurityConfig{
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/products/**","/order/**","/checkout/**","/rating/**","/public/**").permitAll()
-                        .requestMatchers("/test").authenticated() .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+                        .requestMatchers("/test").authenticated().requestMatchers(
+                                        "/v3/api-docs",
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/swagger-resources/**",
+                                        "/webjars/**"
+                                ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
