@@ -1,5 +1,6 @@
 package com.example.finalyearproject.Services;
 
+import com.cloudinary.Cloudinary;
 import com.example.finalyearproject.Abstraction.ConsumerRepo;
 import com.example.finalyearproject.Abstraction.DeliveryAddressesRepo;
 import com.example.finalyearproject.DataStore.Consumer;
@@ -8,23 +9,15 @@ import com.example.finalyearproject.Utility.ConsumerRegisterDTO;
 import com.example.finalyearproject.Utility.ConsumerUtility;
 import com.example.finalyearproject.Utility.DeliveryAddressUtility;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class ConsumerService {
@@ -38,8 +31,12 @@ public class ConsumerService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
+    @Autowired
+    private Cloudinary cloudinary;
+
+    private static final Logger logger = LoggerFactory.getLogger(ConsumerService.class);
+
+
 
     @Transactional
     public ConsumerUtility RegisterConsumer(ConsumerRegisterDTO dto) {
@@ -70,33 +67,51 @@ public class ConsumerService {
         }
     }
 
-
-
-
-
     public String uploadConsumerProfilePhoto(MultipartFile file, String email) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Profile photo is empty or missing");
         }
 
-        String safeEmail = email.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
-        Path profileDir = Paths.get(uploadDir, "profiles", "consumers", safeEmail);
-        if (!Files.exists(profileDir)) {
-            Files.createDirectories(profileDir);
+        // File type validation
+        String contentType = file.getContentType();
+        if (contentType == null || !(contentType.startsWith("image/"))) {
+            throw new IllegalArgumentException("Uploaded file is not an image");
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        // Size validation (e.g., 5MB max)
+        long maxSizeBytes = 5 * 1024 * 1024; // 5MB
+        if (file.getSize() > maxSizeBytes) {
+            throw new IllegalArgumentException("Image size exceeds maximum allowed (5MB)");
         }
 
-        String uniqueFilename = UUID.randomUUID().toString() + extension;
-        Path filePath = profileDir.resolve(uniqueFilename);
+        try {
+            // Create a folder path for organizing images in Cloudinary
+            String folderPath = "profiles/consumers/" + email.replaceAll("[^a-zA-Z0-9.\\-]", "_");
 
-        Files.copy(file.getInputStream(), filePath);
+            // Prepare upload parameters
+            Map<String, Object> params = new HashMap<>();
+            params.put("folder", folderPath);
+            params.put("public_id", UUID.randomUUID().toString());
+            params.put("overwrite", true);
+            params.put("resource_type", "auto");
 
-        return "/uploads/profiles/consumers/" + safeEmail + "/" + uniqueFilename;
+            // Upload to Cloudinary
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
+
+            // Validate return value
+            if (uploadResult == null || !uploadResult.containsKey("secure_url")) {
+                throw new IOException("Invalid response from image upload service");
+            }
+
+            // Return the secure URL of the uploaded image
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            logger.error("Failed to upload image to Cloudinary: {}", e.getMessage(), e);
+            throw new IOException("Failed to upload image: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            logger.error("Cloudinary upload error: {}", e.getMessage(), e);
+            throw new IOException("Image upload service failed: " + e.getMessage(), e);
+        }
     }
 
 

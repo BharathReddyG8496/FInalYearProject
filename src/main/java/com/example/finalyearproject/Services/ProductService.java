@@ -11,7 +11,6 @@ import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.io.IOException;
 
 @Service
 public class ProductService {
@@ -152,7 +151,7 @@ public class ProductService {
         try {
             // First, remove the image files from the file system.
             productImageService.deleteAllImagesForProduct(productId);
-        } catch (IOException | ResourceNotFoundException ex) {
+        } catch (ResourceNotFoundException ex) {
             System.err.println("Error deleting image files: " + ex.getMessage());
             // Depending on your needs, you might decide to cancel deletion or log and continue.
         }
@@ -167,5 +166,4 @@ public class ProductService {
         // Delete the product; now, child product_image rows will have been removed.
         productRepo.delete(product);
     }
-
 }

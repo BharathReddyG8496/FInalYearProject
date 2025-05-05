@@ -11,6 +11,7 @@ import com.example.finalyearproject.Services.FarmerService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Utility.FarmerUtility;
 import com.example.finalyearproject.Utility.ProductResponseUtility;
+import com.example.finalyearproject.Utility.ProductUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,22 @@ public class FarmerController {
 
     @Autowired
     private FarmerService farmerService;
+
+    @Autowired
+    private ProductService productService;
+
+    @PostMapping("/add-product")
+    public ResponseEntity<?> AddProduct(@Valid @ModelAttribute ProductUtility prodUtil){
+        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            Product storedProduct = productService.AddProduct(prodUtil, farmerEmail);
+            return ResponseEntity.ok(storedProduct);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add product.");
+        }
+    }
 
     // update-farmer
     @PutMapping("/update-farmer/{farmerId}")

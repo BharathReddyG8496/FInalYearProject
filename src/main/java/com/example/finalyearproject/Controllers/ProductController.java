@@ -26,18 +26,7 @@ public class ProductController {
     private ProductImageService productImageService;
 
     //add product
-    @PostMapping("/add-product")
-    public ResponseEntity<?> AddProduct(@Valid @ModelAttribute ProductUtility prodUtil){
-        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        try {
-            Product storedProduct = productService.AddProduct(prodUtil, farmerEmail);
-            return ResponseEntity.ok(storedProduct);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add product.");
-        }
-    }
+
     // update-product
     @PutMapping("/update-product/{productId}")
     public ResponseEntity<?> updateProduct(

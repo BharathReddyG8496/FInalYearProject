@@ -17,7 +17,7 @@ public class OpenApiConfig {
                         .title("Final Year Project API")
                         .version("1.0")
                         .description("API Documentation for Final Year Project")
-                        .contact(new Contact().name("Your Name").email("your.email@example.com"))
+                        .contact(new Contact().name("Bharath Reddy G").email("bharath849693@gmail.com"))
                         .license(new License().name("Apache 2.0").url("http://www.apache.org/licenses/LICENSE-2.0")));
     }
 }

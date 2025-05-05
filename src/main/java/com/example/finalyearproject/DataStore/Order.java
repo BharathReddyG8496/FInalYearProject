@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -28,8 +27,8 @@ public class Order {
 //    @NotNull(message ="Date cannot be null")
       private LocalDateTime OrderDate;
 
-//    @NotNull(message = "Amount can not be null")
-//    @Positive
+//   @NotNull(message = "Amount can not be null")
+//   @Positive
      private double TotalAmount;
 
      private String orderStatus;
