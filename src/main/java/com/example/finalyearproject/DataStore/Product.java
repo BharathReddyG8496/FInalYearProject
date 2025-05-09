@@ -1,6 +1,7 @@
 package com.example.finalyearproject.DataStore;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -12,6 +13,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,6 +45,16 @@ public class Product {
     @Min(value = 0)
     private int stock;
 
+
+    @JsonIgnore
+    private LocalDate harvestDate;
+
+    @JsonIgnore
+    private LocalDate availableFromDate;
+
+    @JsonIgnore
+    private boolean isOrganic;
+
     @ManyToOne
     @JoinColumn(name = "farmer_id", nullable = false)
     @JsonBackReference("farmer-product")
@@ -66,7 +79,10 @@ public class Product {
     private CategoryType category;
 
     // Aggregate rating fields
+    @JsonIgnore
     private Double totalRating = 0.0;
+    @JsonIgnore
     private Integer ratingCount = 0;
+    @JsonIgnore
     private Double averageRating = 0.0;
 }

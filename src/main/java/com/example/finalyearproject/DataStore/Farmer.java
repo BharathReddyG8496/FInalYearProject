@@ -1,5 +1,6 @@
 package com.example.finalyearproject.DataStore;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -8,9 +9,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,16 +65,14 @@ public class Farmer implements UserDetails {
 
 
     // Aggregate rating fields
+    @JsonIgnore
     private Double totalRating = 0.0;
+    @JsonIgnore
     private Integer ratingCount = 0;
+    @JsonIgnore
     private Double averageRating = 0.0;
 
     // UserDetails methods implementation
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null; // or your authorities implementation
-    }
-
     @Override
     public String getPassword() {
         return this.farmerPassword;
@@ -108,5 +109,11 @@ public class Farmer implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Return FARMER authority
+        return Collections.singletonList(new SimpleGrantedAuthority("FARMER"));
     }
 }

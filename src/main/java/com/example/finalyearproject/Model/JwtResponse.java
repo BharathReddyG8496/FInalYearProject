@@ -11,4 +11,5 @@ import lombok.*;
 public class JwtResponse {
     private String jwtToken;
     private String userName;
+    private String role; // Added role field for frontend
 }

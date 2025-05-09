@@ -1,22 +1,26 @@
 package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.DataStore.Product;
+import com.example.finalyearproject.DataStore.ProductImage;
 import com.example.finalyearproject.Services.ProductImageService;
 import com.example.finalyearproject.Services.ProductService;
+import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.ProductUpdateDTO;
 import com.example.finalyearproject.Utility.ProductUtility;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
-@RequiredArgsConstructor
-@RequestMapping("/products")
+@RequestMapping("/product")
 public class ProductController {
 
     @Autowired
@@ -25,49 +29,87 @@ public class ProductController {
     @Autowired
     private ProductImageService productImageService;
 
-    //add product
 
-    // update-product
-    @PutMapping("/update-product/{productId}")
-    public ResponseEntity<?> updateProduct(
-            @Valid @ModelAttribute ProductUpdateDTO dto,
-            @PathVariable int productId) {
+    @PutMapping("update/{productId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Product>> updateProduct(
+            @PathVariable int productId,
+            @RequestBody @Valid ProductUpdateDTO productUpdateDTO,
+            Authentication authentication) {
 
-        // Get the currently authenticated farmer's email from security context.
-        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        String farmerEmail = authentication.getName();
+        ApiResponse<Product> response = productService.updateProduct(productUpdateDTO, productId, farmerEmail);
 
-        try {
-            Product updatedProduct = productService.updateProduct(dto, productId, farmerEmail);
-            return ResponseEntity.ok(updatedProduct);
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to update product: " + ex.getMessage());
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 
-    @PostMapping("/{productId}/add-image")
-    public ResponseEntity<String> addImage(@PathVariable int productId,
-                                           @RequestParam("image") MultipartFile[] files) {
-        try {
-            productImageService.uploadProductImages(productId, files);
-            return ResponseEntity.ok("Image uploaded successfully.");
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error uploading image: " + ex.getMessage());
+//    @GetMapping("products/farmer/{farmerId}")
+//    public ResponseEntity<ApiResponse<List<Product>>> getProductsByFarmer(@PathVariable int farmerId) {
+//        ApiResponse<List<Product>> response = productService.getProductsByFarmerId(farmerId);
+//        return ResponseEntity.ok(response);
+//    }
+
+
+    @PostMapping(value = "/images/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<ProductImage>>> addProductImages(
+            @PathVariable int productId,
+            @RequestParam("images") MultipartFile[] images,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+
+        // First verify product belongs to this farmer
+        ApiResponse<Product> productResponse = productService.getProductByIdAndFarmerEmail(productId, farmerEmail);
+
+        if (productResponse.getData() == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Access denied", "You don't have permission to modify this product"));
+        }
+
+        ApiResponse<List<ProductImage>> response = productImageService.uploadProductImages(productId, images);
+
+        if (response.getData() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 
-    // delete-product
+    /**
+     * Delete a specific product image (farmer only)
+     */
+    @DeleteMapping("images/{imageId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProductImage(
+            @PathVariable int imageId,
+            Authentication authentication) {
 
-    @DeleteMapping("/delete-product/{productId}")
-    public ResponseEntity<?> DeleteProduct(@PathVariable("productId")int productId){
-        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        try{
-            this.productService.DeleteProduct(productId, farmerEmail);
-            return ResponseEntity.ok().build();
-        }catch (Exception e){
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        String farmerEmail = authentication.getName();
+
+        // First verify image belongs to this farmer's product
+        ApiResponse<Boolean> ownershipResponse = productImageService.verifyImageOwnership(imageId, farmerEmail);
+
+        if (ownershipResponse.getData() == null || !ownershipResponse.getData()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Access denied", "You don't have permission to delete this image"));
         }
 
+        ApiResponse<Void> response = productImageService.deleteProductImage(imageId);
+
+        if (response.getErrors() == null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
+
+    /**
+     * Search products by name (public)
+     */
+
 }

@@ -5,6 +5,7 @@ import com.example.finalyearproject.Abstraction.ProductImageRepository;
 import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.DataStore.ProductImage;
+import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +31,14 @@ public class ProductImageService {
     @Autowired
     private Cloudinary cloudinary;
 
-    public void uploadProductImages(int productId, MultipartFile[] files) throws IOException, ResourceNotFoundException {
-        Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
-
+    public ApiResponse<List<ProductImage>> uploadProductImages(int productId, MultipartFile[] files) {
         List<String> successfullyUploadedIds = new ArrayList<>();
+        List<ProductImage> uploadedImages = new ArrayList<>();
 
         try {
+            Product product = productRepo.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
+
             for (MultipartFile file : files) {
                 if (file.isEmpty()) {
                     continue;
@@ -74,34 +76,37 @@ public class ProductImageService {
 
                     // Add image to product images set
                     product.getImages().add(image);
-                    productImageRepository.save(image);
+                    ProductImage savedImage = productImageRepository.save(image);
+                    uploadedImages.add(savedImage);
 
                     logger.info("Successfully uploaded image for product {}: {}", productId, publicId);
 
                 } catch (IOException e) {
                     logger.error("Failed to upload image to Cloudinary for product {}: {}",
                             productId, e.getMessage(), e);
-                    throw new IOException("Failed to upload image: " + e.getMessage(), e);
-                } catch (RuntimeException e) {
-                    logger.error("Cloudinary service error for product {}: {}",
-                            productId, e.getMessage(), e);
-                    throw new IOException("Cloud storage service error: " + e.getMessage(), e);
+                    // Continue with next image rather than failing entire batch
                 }
             }
 
             // Save the updated product with its new images
             productRepo.save(product);
 
-        } catch (Exception e) {
-            // If overall process fails, clean up any successfully uploaded images
-            logger.error("Error during product image upload process for product {}: {}",
-                    productId, e.getMessage(), e);
+            if (uploadedImages.isEmpty()) {
+                return ApiResponse.error("No images uploaded", "No valid images were provided or all uploads failed");
+            }
 
-            // Attempt to delete any images that were successfully uploaded to Cloudinary
+            return ApiResponse.success("Images uploaded successfully", uploadedImages);
+
+        } catch (ResourceNotFoundException e) {
+            logger.error("Product not found for image upload: {}", e.getMessage());
+            // Attempt to rollback any uploads if product not found
             rollbackCloudinaryUploads(successfullyUploadedIds);
-
-            // Re-throw the exception to inform the caller
-            throw e;
+            return ApiResponse.error("Upload failed", e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error during product image upload process: {}", e.getMessage(), e);
+            // Rollback any successful uploads
+            rollbackCloudinaryUploads(successfullyUploadedIds);
+            return ApiResponse.error("Upload failed", e.getMessage());
         }
     }
 
@@ -119,83 +124,123 @@ public class ProductImageService {
         }
     }
 
-    public void deleteAllImagesForProduct(int productId) throws ResourceNotFoundException {
-        Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
+    public ApiResponse<Void> deleteAllImagesForProduct(int productId) {
+        try {
+            Product product = productRepo.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + productId));
 
-        boolean hasFailedDeletions = false;
-        List<String> failedIds = new ArrayList<>();
+            boolean hasFailedDeletions = false;
+            List<String> failedIds = new ArrayList<>();
 
-        // Delete each image from Cloudinary
-        for (ProductImage image : product.getImages()) {
-            try {
-                // Extract public_id from the filename field
-                String publicId = image.getFilename();
+            // Delete each image from Cloudinary only
+            for (ProductImage image : product.getImages()) {
+                try {
+                    // Extract public_id from the filename field
+                    String publicId = image.getFilename();
 
-                // Delete from Cloudinary
-                Map<String, String> params = new HashMap<>();
-                params.put("resource_type", "image");
-                cloudinary.uploader().destroy(publicId, params);
-                logger.info("Successfully deleted image {} for product {}", publicId, productId);
+                    // Delete from Cloudinary
+                    Map<String, String> params = new HashMap<>();
+                    params.put("resource_type", "image");
+                    cloudinary.uploader().destroy(publicId, params);
+                    logger.info("Successfully deleted image {} for product {}", publicId, productId);
 
-            } catch (IOException e) {
-                hasFailedDeletions = true;
-                failedIds.add(image.getFilename());
-                logger.error("Failed to delete image {} for product {}: {}",
-                        image.getFilename(), productId, e.getMessage(), e);
-            } catch (RuntimeException e) {
-                hasFailedDeletions = true;
-                failedIds.add(image.getFilename());
-                logger.error("Cloud service error while deleting image {} for product {}: {}",
-                        image.getFilename(), productId, e.getMessage(), e);
+                } catch (IOException e) {
+                    hasFailedDeletions = true;
+                    failedIds.add(image.getFilename());
+                    logger.error("Failed to delete image {} for product {}: {}",
+                            image.getFilename(), productId, e.getMessage(), e);
+                } catch (RuntimeException e) {
+                    hasFailedDeletions = true;
+                    failedIds.add(image.getFilename());
+                    logger.error("Cloud service error while deleting image {} for product {}: {}",
+                            image.getFilename(), productId, e.getMessage(), e);
+                }
             }
-        }
 
-        // Clear the product's images collection and save
-        product.getImages().clear();
-        productRepo.save(product);
+            // Log warning if some deletions failed
+            if (hasFailedDeletions) {
+                logger.warn("Some images could not be deleted from cloud storage for product {}: {}",
+                        productId, String.join(", ", failedIds));
+                return ApiResponse.success("Product images partially deleted - some cloud resources could not be removed");
+            }
 
-        // Delete all product images from database
-        productImageRepository.deleteByProduct_ProductId(productId);
+            return ApiResponse.success("All product images deleted successfully");
 
-        // Log warning if some deletions failed
-        if (hasFailedDeletions) {
-            logger.warn("Some images could not be deleted from cloud storage for product {}: {}",
-                    productId, String.join(", ", failedIds));
+        } catch (ResourceNotFoundException e) {
+            logger.error("Product not found for image deletion: {}", e.getMessage());
+            return ApiResponse.error("Deletion failed", e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error during product image deletion: {}", e.getMessage(), e);
+            return ApiResponse.error("Deletion failed", e.getMessage());
         }
     }
 
     /**
      * Delete a single product image
      */
-    public void deleteProductImage(int imageId) throws ResourceNotFoundException, IOException {
-        ProductImage image = productImageRepository.findById(imageId)
-                .orElseThrow(() -> new ResourceNotFoundException("Image not found with id " + imageId));
-
+    public ApiResponse<Void> deleteProductImage(int imageId) {
         try {
-            // Delete from Cloudinary
-            String publicId = image.getFilename();
-            Map<String, String> params = new HashMap<>();
-            params.put("resource_type", "image");
-            cloudinary.uploader().destroy(publicId, params);
+            ProductImage image = productImageRepository.findById(imageId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Image not found with id " + imageId));
 
-            // Remove from product's image collection
+            try {
+                // Delete from Cloudinary
+                String publicId = image.getFilename();
+                Map<String, String> params = new HashMap<>();
+                params.put("resource_type", "image");
+                cloudinary.uploader().destroy(publicId, params);
+
+                // Remove from product's image collection
+                Product product = image.getProduct();
+                product.getImages().remove(image);
+
+                // Delete from database
+                productImageRepository.delete(image);
+
+                logger.info("Successfully deleted image {} (id: {})", publicId, imageId);
+
+                return ApiResponse.success("Image deleted successfully");
+
+            } catch (IOException e) {
+                logger.error("Failed to delete image {} from cloud storage: {}",
+                        image.getFilename(), e.getMessage(), e);
+                return ApiResponse.error("Deletion failed", "Failed to delete image from cloud storage: " + e.getMessage());
+            } catch (RuntimeException e) {
+                logger.error("Cloud service error while deleting image {}: {}",
+                        image.getFilename(), e.getMessage(), e);
+                return ApiResponse.error("Deletion failed", "Cloud storage service error: " + e.getMessage());
+            }
+        } catch (ResourceNotFoundException e) {
+            logger.error("Image not found for deletion: {}", e.getMessage());
+            return ApiResponse.error("Deletion failed", e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error during image deletion: {}", e.getMessage(), e);
+            return ApiResponse.error("Deletion failed", e.getMessage());
+        }
+    }
+
+    /**
+     * Verify that an image belongs to a product owned by the specified farmer
+     */
+    public ApiResponse<Boolean> verifyImageOwnership(int imageId, String farmerEmail) {
+        try {
+            Optional<ProductImage> imageOpt = productImageRepository.findById(imageId);
+            if (imageOpt.isEmpty()) {
+                return ApiResponse.error("Image not found", "No image found with ID: " + imageId);
+            }
+
+            ProductImage image = imageOpt.get();
             Product product = image.getProduct();
-            product.getImages().remove(image);
 
-            // Delete from database
-            productImageRepository.delete(image);
+            if (product == null) {
+                return ApiResponse.error("Invalid image", "Image is not associated with any product");
+            }
 
-            logger.info("Successfully deleted image {} (id: {})", publicId, imageId);
-
-        } catch (IOException e) {
-            logger.error("Failed to delete image {} from cloud storage: {}",
-                    image.getFilename(), e.getMessage(), e);
-            throw new IOException("Failed to delete image from cloud storage: " + e.getMessage(), e);
-        } catch (RuntimeException e) {
-            logger.error("Cloud service error while deleting image {}: {}",
-                    image.getFilename(), e.getMessage(), e);
-            throw new IOException("Cloud storage service error: " + e.getMessage(), e);
+            boolean isOwner = product.getFarmer().getFarmerEmail().equals(farmerEmail);
+            return ApiResponse.success(isOwner ? "Image belongs to farmer" : "Image does not belong to farmer", isOwner);
+        } catch (Exception e) {
+            logger.error("Failed to verify image ownership: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to verify ownership", e.getMessage());
         }
     }
 }

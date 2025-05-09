@@ -2,7 +2,9 @@ package com.example.finalyearproject.Utility;
 
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.cglib.core.Local;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -14,5 +16,7 @@ public class ProductResponseUtility {
     private double price;
     private int stock;
     private String category;
+    private LocalDate harvestDate;
+    private LocalDate availableDate;
     private List<String> imageUrls;
 }

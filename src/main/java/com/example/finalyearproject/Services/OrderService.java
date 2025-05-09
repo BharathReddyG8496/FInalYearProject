@@ -8,16 +8,22 @@ import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.Order;
 import com.example.finalyearproject.DataStore.OrderItem;
 import com.example.finalyearproject.DataStore.Product;
-import com.example.finalyearproject.Utility.OrderUtility;
-//import lombok.var;
+import com.example.finalyearproject.Utility.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashSet;
 import java.util.Set;
 
 @Service
 public class OrderService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired
     private OrderItemRepo orderItemRepo;
@@ -31,164 +37,279 @@ public class OrderService {
     @Autowired
     private ProductRepo productRepo;
 
-    public OrderUtility AddToCart(int consumerId, int productId, int quantity){
-        try{
-        if(consumerId==0 || productId==0 || quantity==0){
-            return new OrderUtility(400,"The parameters cannot be null!!!",null);
-        }
-        Consumer consumer = this.consumerRepo.findConsumerByConsumerId(consumerId);
-        Product product = this.productRepo.findProductByProductId(productId);
-        if(consumer==null || product==null){
-            return new OrderUtility(400,"Unable to find the consumer or product in DB",null);
-        }
-        Order order;
-        OrderItem orderItem;
-            if(consumer.getConsumerOrder().isEmpty()){
-            Set<Order> orders = new HashSet<>();
-            order = new Order();
-            order.setConsumer(consumer);
-            order.setOrderStatus("CREATED");
-            Set<OrderItem> orderItems = new HashSet<>();
-            orderItem = new OrderItem();
-            if(quantity>product.getStock())
-                return new OrderUtility(400,"The entered quantity is exceeding the Stock of Product", null);
-
-
-            order.setTotalAmount(product.getPrice()*quantity);
-            orderItems.add(orderItem);
-            order.setOrderItems(orderItems);
-            orderRepo.save(order);
-
-            orderItem.setProduct(product);
-            orderItem.setQuantity(quantity);
-            orderItem.setUnitPrice(product.getPrice()*quantity);
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            if(product.getOrderItems() == null){
-                Set<OrderItem> orderItemsSet = new HashSet<>();
-                orderItemsSet.add(orderItem);
-                product.setOrderItems(orderItemsSet);
-            }else{
-                product.getOrderItems().add(orderItem);
-            }
-
-            orderItemRepo.save(orderItem);
-
-            orders.add(order);
-            consumer.setConsumerOrder(orders);
-            return new OrderUtility(200,"Items completely added to the Cart",orderItems);
-        }else{
-            for(Order order1 : consumer.getConsumerOrder()){
-                if(order1.getOrderStatus().equals("CREATED")){
-
-                    // Checks for existing product in the cart.
-                    for(OrderItem orderItem1: order1.getOrderItems()){
-                        if(orderItem1.getProduct().getProductId()==productId) {
-                            if((orderItem1.getQuantity()+quantity)>product.getStock())
-                                return new OrderUtility(400,"The entered quantity is exceeding the Stock of Product", null);
-
-                            orderItem1.setQuantity(orderItem1.getQuantity()+quantity);
-                            orderItem1.setUnitPrice(orderItem1.getUnitPrice()+(product.getPrice()*quantity));
-                            this.orderItemRepo.save(orderItem1);
-                            order1.setTotalAmount(order1.getTotalAmount()+(product.getPrice()*quantity));
-
-                            this.orderRepo.save(order1);
-                            return new OrderUtility(200,"Added the items to the existing order",order1.getOrderItems());
-                        }
-                    }
-
-                    // Adds new product into the cart.
-                    orderItem = new OrderItem();
-                    if(quantity>product.getStock())
-                        return new OrderUtility(400,"The entered quantity is exceeding the Stock of Product", null);
-                    orderItem.setProduct(product);
-
-                    if(product.getOrderItems() == null){
-                        Set<OrderItem> orderItemsSet = new HashSet<>();
-                        orderItemsSet.add(orderItem);
-                        product.setOrderItems(orderItemsSet);
-                    }else{
-                        product.getOrderItems().add(orderItem);
-                    }
-                    orderItem.setQuantity(quantity);
-                    //            product.setStock(product.getStock()-quantity);
-                    orderItem.setUnitPrice(product.getPrice()*quantity);
-                    orderItem.setOrder(order1);
-                    orderItem.setProduct(product);
-                    orderItemRepo.save(orderItem);
-
-                    order1.setTotalAmount(order1.getTotalAmount()+(product.getPrice()*quantity));
-                    order1.getOrderItems().add(orderItem);
-                    this.orderRepo.save(order1);
-                    return new OrderUtility(200,"New item added to the cart",order1.getOrderItems());
-                }
-
-            }
-
-        }
-        return new OrderUtility(400,"Something went wrong",null);
-    }catch(Exception e){
-        return new OrderUtility(400, e.getMessage(), null);
-    }
-    }
-
-    public OrderUtility RemoveFromCart(int consumerId,int orderItemId,int quantity){
-
+    /**
+     * Add product to cart
+     */
+    @Transactional
+    public ApiResponse<Set<OrderItem>> addToCart(int consumerId, int productId, int quantity) {
         try {
-            Consumer consumer = this.consumerRepo.findConsumerByConsumerId(consumerId);
-            if (consumerId == 0 || orderItemId == 0 || consumer == null) {
-                return new OrderUtility(400, "The parameters cannot be null!!!", null);
+            // Input validation
+            if (quantity <= 0) {
+                return ApiResponse.error("Invalid quantity", "Quantity must be a positive number");
             }
 
-            OrderItem orderItem = this.orderItemRepo.findOrderItemWithStatusCREATED(consumerId, orderItemId);
-            Order order = this.orderRepo.findByStatusAndConsumerId("CREATED", consumerId);
-            Product product = orderItem.getProduct();
-            if (quantity >= orderItem.getQuantity()) {
-                order.setTotalAmount(order.getTotalAmount() - orderItem.getUnitPrice());
-                order.getOrderItems().remove(orderItem);
-                product.getOrderItems().remove(orderItem);
-                this.orderItemRepo.deleteByOrderItemId(orderItemId);
-                return new OrderUtility(200, "Removed the product from the cart", order.getOrderItems());
+            // Get consumer and product
+            Consumer consumer = consumerRepo.findConsumerByConsumerId(consumerId);
+            Product product = productRepo.findProductByProductId(productId);
+
+            if (product == null) {
+                return ApiResponse.error("Product not found", "Product not found with ID: " + productId);
             }
-            double priceChange = (quantity * orderItem.getProduct().getPrice());
-            orderItem.setQuantity(orderItem.getQuantity() - quantity);
-            orderItem.setUnitPrice(orderItem.getUnitPrice() - priceChange);
-            order.setTotalAmount(order.getTotalAmount() - priceChange);
-            this.orderItemRepo.save(orderItem);
-            this.orderRepo.save(order);
-            return new OrderUtility(200, "Removed the specific quantity of products", order.getOrderItems());
-        }catch(Exception e){
-            return new OrderUtility(400, e.getMessage(), null);
-        }
-    }
 
-    public OrderUtility GetConsumerCart(int consumerId){
-        if(consumerId==0){
-            return new OrderUtility(400,"ConsumerId is 0",null);
-        }
-        Set<OrderItem> orderItemSet = this.orderRepo.getConsumersCart(consumerId).getOrderItems();
-        if(orderItemSet!=null)
-            return new OrderUtility(200,"Total Products : "+orderItemSet.size(),orderItemSet);
-        return new OrderUtility(400,"Got null set from the executed query",null);
-    }
+            // Check stock availability
+            if (quantity > product.getStock()) {
+                return ApiResponse.error("Insufficient stock",
+                        "Requested quantity (" + quantity + ") exceeds available stock (" + product.getStock() + ")");
+            }
 
-    public OrderUtility UpdateTheChangesField(int consumerId){
-        if(consumerId==0){
-            return new OrderUtility(400,"ConsumerId is 0",null);
-        }
-        Set<OrderItem> orderItemSet = this.orderRepo.getConsumersCart(consumerId).getOrderItems();
-        if(orderItemSet!=null) {
-            for(OrderItem orderItem : orderItemSet){
-                if(orderItem.getFieldChange()!=null) {
-                    orderItem.setFieldChange(null);
-                    this.orderItemRepo.save(orderItem);
+            // Calculate item price with proper decimal handling
+            BigDecimal unitPrice = BigDecimal.valueOf(product.getPrice())
+                    .multiply(BigDecimal.valueOf(quantity))
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            // Find or create cart
+            Order cart = findOrCreateCart(consumer);
+
+            // Check if product already exists in cart
+            for (OrderItem item : cart.getOrderItems()) {
+                if (item.getProduct().getProductId() == productId) {
+                    // Check combined quantity against stock
+                    int newTotalQuantity = item.getQuantity() + quantity;
+                    if (newTotalQuantity > product.getStock()) {
+                        return ApiResponse.error("Insufficient stock",
+                                "Total quantity (" + newTotalQuantity + ") exceeds available stock (" + product.getStock() + ")");
+                    }
+
+                    // Update existing item
+                    BigDecimal newItemPrice = BigDecimal.valueOf(product.getPrice())
+                            .multiply(BigDecimal.valueOf(newTotalQuantity))
+                            .setScale(2, RoundingMode.HALF_UP);
+
+                    item.setQuantity(newTotalQuantity);
+                    item.setUnitPrice(newItemPrice.doubleValue());
+
+                    // Update order total
+                    BigDecimal additionalAmount = BigDecimal.valueOf(product.getPrice())
+                            .multiply(BigDecimal.valueOf(quantity))
+                            .setScale(2, RoundingMode.HALF_UP);
+
+                    BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
+                            .add(additionalAmount)
+                            .setScale(2, RoundingMode.HALF_UP);
+
+                    cart.setTotalAmount(newTotal.doubleValue());
+
+                    // Save changes
+                    orderItemRepo.save(item);
+                    orderRepo.save(cart);
+
+                    return ApiResponse.success("Item quantity updated in cart", cart.getOrderItems());
                 }
             }
-            return new OrderUtility(200, "Total Products : " + orderItemSet.size(), orderItemSet);
-        }
-        return new OrderUtility(400,"Got null set from the executed query",null);
 
+            // Add new item to cart
+            OrderItem newItem = new OrderItem();
+            newItem.setProduct(product);
+            newItem.setQuantity(quantity);
+            newItem.setUnitPrice(unitPrice.doubleValue());
+            newItem.setOrder(cart);
+
+            // Update product's order items if needed
+            if (product.getOrderItems() == null) {
+                product.setOrderItems(new HashSet<>());
+            }
+            product.getOrderItems().add(newItem);
+
+            // Update cart
+            cart.getOrderItems().add(newItem);
+            BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
+                    .add(unitPrice)
+                    .setScale(2, RoundingMode.HALF_UP);
+            cart.setTotalAmount(newTotal.doubleValue());
+
+            // Save everything
+            orderItemRepo.save(newItem);
+            orderRepo.save(cart);
+
+            return ApiResponse.success("Item added to cart", cart.getOrderItems());
+        } catch (Exception e) {
+            logger.error("Failed to add to cart: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to add item to cart", e.getMessage());
+        }
     }
 
+    /**
+     * Find existing cart or create a new one
+     */
+    private Order findOrCreateCart(Consumer consumer) {
+        // Check if consumer has any orders
+        if (consumer.getConsumerOrder() != null) {
+            // Look for an existing cart (order with status CREATED)
+            for (Order order : consumer.getConsumerOrder()) {
+                if ("CREATED".equals(order.getOrderStatus())) {
+                    return order;
+                }
+            }
+        }
 
+        // Create a new cart if none exists
+        Order newCart = new Order();
+        newCart.setConsumer(consumer);
+        newCart.setOrderStatus("CREATED");
+        newCart.setTotalAmount(0.0);
+        newCart.setOrderItems(new HashSet<>());
+
+        // Save the new cart
+        Order savedCart = orderRepo.save(newCart);
+
+        // Initialize consumer's order set if needed
+        if (consumer.getConsumerOrder() == null) {
+            consumer.setConsumerOrder(new HashSet<>());
+        }
+
+        // Add the new cart to consumer's orders
+        consumer.getConsumerOrder().add(savedCart);
+
+        return savedCart;
+    }
+
+    /**
+     * Remove item from cart
+     */
+    @Transactional
+    public ApiResponse<Set<OrderItem>> removeFromCart(int consumerId, int orderItemId, int quantity) {
+        try {
+            // Input validation
+            if (quantity <= 0) {
+                return ApiResponse.error("Invalid quantity", "Quantity must be a positive number");
+            }
+
+            // Find cart item
+            OrderItem orderItem = orderItemRepo.findOrderItemWithStatusCREATED(consumerId, orderItemId);
+            if (orderItem == null) {
+                return ApiResponse.error("Item not found", "No active cart item found with ID: " + orderItemId);
+            }
+
+            // Find cart
+            Order cart = orderRepo.findByStatusAndConsumerId("CREATED", consumerId);
+            if (cart == null) {
+                return ApiResponse.error("Cart not found", "No active cart found");
+            }
+
+            Product product = orderItem.getProduct();
+
+            // Handle removing entire item or reducing quantity
+            if (quantity >= orderItem.getQuantity()) {
+                // Remove entire item
+
+                // Update cart total
+                BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
+                        .subtract(BigDecimal.valueOf(orderItem.getUnitPrice()))
+                        .setScale(2, RoundingMode.HALF_UP);
+                cart.setTotalAmount(newTotal.doubleValue());
+
+                // Remove from collections and database
+                cart.getOrderItems().remove(orderItem);
+                if (product != null && product.getOrderItems() != null) {
+                    product.getOrderItems().remove(orderItem);
+                }
+                orderItemRepo.delete(orderItem);
+
+                // Save cart
+                orderRepo.save(cart);
+
+                if (cart.getOrderItems().isEmpty()) {
+                    return ApiResponse.success("Cart is now empty", new HashSet<>());
+                }
+
+                return ApiResponse.success("Item removed from cart", cart.getOrderItems());
+            } else {
+                // Reduce quantity
+                BigDecimal reducedPrice = BigDecimal.valueOf(product.getPrice())
+                        .multiply(BigDecimal.valueOf(quantity))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                // Update item
+                int newQuantity = orderItem.getQuantity() - quantity;
+                BigDecimal newItemPrice = BigDecimal.valueOf(product.getPrice())
+                        .multiply(BigDecimal.valueOf(newQuantity))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                orderItem.setQuantity(newQuantity);
+                orderItem.setUnitPrice(newItemPrice.doubleValue());
+
+                // Update cart total
+                BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
+                        .subtract(reducedPrice)
+                        .setScale(2, RoundingMode.HALF_UP);
+                cart.setTotalAmount(newTotal.doubleValue());
+
+                // Save changes
+                orderItemRepo.save(orderItem);
+                orderRepo.save(cart);
+
+                return ApiResponse.success("Item quantity reduced in cart", cart.getOrderItems());
+            }
+        } catch (Exception e) {
+            logger.error("Failed to remove from cart: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to remove item from cart", e.getMessage());
+        }
+    }
+
+    /**
+     * Get consumer's cart
+     */
+    public ApiResponse<Set<OrderItem>> getConsumerCart(int consumerId) {
+        try {
+            // Find cart
+            Order cart = orderRepo.getConsumersCart(consumerId);
+            if (cart == null) {
+                return ApiResponse.success("Cart is empty", new HashSet<>());
+            }
+
+            // Get cart items
+            Set<OrderItem> orderItems = cart.getOrderItems();
+            if (orderItems == null || orderItems.isEmpty()) {
+                return ApiResponse.success("Cart is empty", new HashSet<>());
+            }
+
+            return ApiResponse.success("Cart retrieved successfully", orderItems);
+        } catch (Exception e) {
+            logger.error("Failed to get cart: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve cart", e.getMessage());
+        }
+    }
+
+    /**
+     * Acknowledge changes in cart items
+     */
+    @Transactional
+    public ApiResponse<Set<OrderItem>> acknowledgeChanges(int consumerId) {
+        try {
+            // Find cart
+            Order cart = orderRepo.getConsumersCart(consumerId);
+            if (cart == null) {
+                return ApiResponse.success("Cart is empty", new HashSet<>());
+            }
+
+            // Get cart items
+            Set<OrderItem> orderItems = cart.getOrderItems();
+            if (orderItems == null || orderItems.isEmpty()) {
+                return ApiResponse.success("Cart is empty", new HashSet<>());
+            }
+
+            // Clear change flags
+            for (OrderItem item : orderItems) {
+                if (item.getFieldChange() != null) {
+                    item.setFieldChange(null);
+                    orderItemRepo.save(item);
+                }
+            }
+
+            return ApiResponse.success("Changes acknowledged successfully", orderItems);
+        } catch (Exception e) {
+            logger.error("Failed to acknowledge changes: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to acknowledge changes", e.getMessage());
+        }
+    }
 }

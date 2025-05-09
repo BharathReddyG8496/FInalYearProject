@@ -8,14 +8,20 @@ import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.Farmer;
 import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.DataStore.Rating;
+import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.Set;
 
 @Service
 public class RatingServices {
+
+    private static final Logger logger = LoggerFactory.getLogger(RatingServices.class);
 
     @Autowired
     private RatingRepo ratingRepo;
@@ -32,8 +38,8 @@ public class RatingServices {
     // Helper method to update the farmer's aggregates incrementally on add/update/delete
     private void updateFarmerAggregates(Farmer farmer, double scoreDelta, int countDelta) {
         // Get current aggregates, ensuring they are not null
-        double currentTotal = farmer.getTotalRating();
-        int currentCount = farmer.getRatingCount();
+        double currentTotal = farmer.getTotalRating() != null ? farmer.getTotalRating() : 0.0;
+        int currentCount = farmer.getRatingCount() != null ? farmer.getRatingCount() : 0;
 
         currentTotal += scoreDelta;
         currentCount += countDelta;
@@ -46,10 +52,11 @@ public class RatingServices {
 
         farmerRepo.save(farmer);
     }
+
     private void updateProductAggregates(Product product, double scoreDelta, int countDelta) {
         // Get current aggregates, ensuring they are not null
-        double currentTotal = product.getTotalRating();
-        int currentCount = product.getRatingCount();
+        double currentTotal = product.getTotalRating() != null ? product.getTotalRating() : 0.0;
+        int currentCount = product.getRatingCount() != null ? product.getRatingCount() : 0;
 
         currentTotal += scoreDelta;
         currentCount += countDelta;
@@ -64,84 +71,173 @@ public class RatingServices {
     }
 
     @Transactional
-    public Rating addRating(Rating rating, String consumerEmail, int productId) throws ResourceNotFoundException {
-        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
-        Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+    public ApiResponse<Rating> addRating(Rating rating, String consumerEmail, int productId) {
+        try {
+            Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+            if (consumer == null) {
+                return ApiResponse.error("Failed to add rating", "Consumer not found with email: " + consumerEmail);
+            }
 
-        rating.setConsumer(consumer);
-        rating.setProduct(product);
-        Rating savedRating = ratingRepo.save(rating);
+            Product product;
+            try {
+                product = productRepo.findById(productId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+            } catch (ResourceNotFoundException e) {
+                return ApiResponse.error("Failed to add rating", e.getMessage());
+            }
 
-        Farmer farmer = product.getFarmer();
-        if (farmer != null) {
-            // Increment aggregates with the new rating's score
-            updateFarmerAggregates(farmer, savedRating.getScore(), 1);
-            updateProductAggregates(product,savedRating.getScore(), 1);
-        }
-        return savedRating;
-    }
+            // Check if user already rated this product
+            if (ratingRepo.existsByConsumer_ConsumerIdAndProduct_ProductId(consumer.getConsumerId(), productId)) {
+                return ApiResponse.error("Rating exists", "You have already rated this product. Please update your existing rating.");
+            }
 
-    @Transactional
-    public Rating updateRating(Rating updatedRating, String consumerEmail) throws ResourceNotFoundException {
-        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+            rating.setConsumer(consumer);
+            rating.setProduct(product);
+            Rating savedRating = ratingRepo.save(rating);
 
-        Rating existingRating = ratingRepo.findById(updatedRating.getRatingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + updatedRating.getRatingId()));
+            Farmer farmer = product.getFarmer();
+            if (farmer != null) {
+                // Increment aggregates with the new rating's score
+                updateFarmerAggregates(farmer, savedRating.getScore(), 1);
+                updateProductAggregates(product, savedRating.getScore(), 1);
+            }
 
-        if (existingRating.getConsumer() == null || existingRating.getConsumer().getConsumerId() != consumer.getConsumerId()) {
-            throw new IllegalArgumentException("Rating does not belong to consumer with ID: " + consumer.getConsumerId());
-        }
-
-        // Capture the old score to determine the delta
-        double oldScore = existingRating.getScore();
-        existingRating.setScore(updatedRating.getScore());
-        existingRating.setComment(updatedRating.getComment());
-        Rating savedRating = ratingRepo.save(existingRating);
-
-        Product product = savedRating.getProduct();
-        Farmer farmer = product.getFarmer();
-        if (farmer != null) {
-            // Update aggregates: subtract the old score and add the new one (count remains unchanged)
-            updateFarmerAggregates(farmer, savedRating.getScore() - oldScore, 0);
-            updateProductAggregates(product,savedRating.getScore() - oldScore, 0);
-
-
-
-        }
-
-        return savedRating;
-    }
-
-    @Transactional
-    public void deleteRating(int ratingId, String consumerEmail) throws ResourceNotFoundException {
-        Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
-        if (!ratingRepo.existsByConsumer_ConsumerIdAndRatingId(consumer.getConsumerId(), ratingId)) {
-            throw new ResourceNotFoundException("Rating not found with ID: " + ratingId + " for consumer ID: " + consumer.getConsumerId());
-        }
-
-        Rating ratingToDelete = ratingRepo.findById(ratingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + ratingId));
-
-        Product product = ratingToDelete.getProduct();
-
-        Farmer farmer = product.getFarmer();
-
-
-        ratingRepo.deleteById(ratingId);
-
-        if (farmer != null) {
-            // Subtract the rating's score and decrement the count
-            updateFarmerAggregates(farmer, -ratingToDelete.getScore(), -1);
-            updateProductAggregates(product,-ratingToDelete.getScore(), -1);
+            return ApiResponse.success("Rating added successfully", savedRating);
+        } catch (Exception e) {
+            logger.error("Failed to add rating: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to add rating", e.getMessage());
         }
     }
 
+    @Transactional
+    public ApiResponse<Rating> updateRating(Rating updatedRating, String consumerEmail) {
+        try {
+            Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+            if (consumer == null) {
+                return ApiResponse.error("Failed to update rating", "Consumer not found with email: " + consumerEmail);
+            }
+
+            Rating existingRating;
+            try {
+                existingRating = ratingRepo.findById(updatedRating.getRatingId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + updatedRating.getRatingId()));
+            } catch (ResourceNotFoundException e) {
+                return ApiResponse.error("Failed to update rating", e.getMessage());
+            }
+
+            if (existingRating.getConsumer() == null || existingRating.getConsumer().getConsumerId() != consumer.getConsumerId()) {
+                return ApiResponse.error("Unauthorized", "You don't have permission to update this rating");
+            }
+
+            // Capture the old score to determine the delta
+            double oldScore = existingRating.getScore();
+            existingRating.setScore(updatedRating.getScore());
+            existingRating.setComment(updatedRating.getComment());
+            Rating savedRating = ratingRepo.save(existingRating);
+
+            Product product = savedRating.getProduct();
+            Farmer farmer = product.getFarmer();
+            if (farmer != null) {
+                // Update aggregates: subtract the old score and add the new one (count remains unchanged)
+                updateFarmerAggregates(farmer, savedRating.getScore() - oldScore, 0);
+                updateProductAggregates(product, savedRating.getScore() - oldScore, 0);
+            }
+
+            return ApiResponse.success("Rating updated successfully", savedRating);
+        } catch (Exception e) {
+            logger.error("Failed to update rating: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to update rating", e.getMessage());
+        }
+    }
 
     @Transactional
-    public Set<Rating> getProductRatings(int productId) {
-        Product product = productRepo.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + productId));
-        return product.getRatings();
+    public ApiResponse<Void> deleteRating(int ratingId, String consumerEmail) {
+        try {
+            Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+            if (consumer == null) {
+                return ApiResponse.error("Failed to delete rating", "Consumer not found with email: " + consumerEmail);
+            }
+
+            if (!ratingRepo.existsByConsumer_ConsumerIdAndRatingId(consumer.getConsumerId(), ratingId)) {
+                return ApiResponse.error("Not found", "Rating not found with ID: " + ratingId + " for your account");
+            }
+
+            Rating ratingToDelete;
+            try {
+                ratingToDelete = ratingRepo.findById(ratingId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + ratingId));
+            } catch (ResourceNotFoundException e) {
+                return ApiResponse.error("Failed to delete rating", e.getMessage());
+            }
+
+            Product product = ratingToDelete.getProduct();
+            Farmer farmer = product.getFarmer();
+
+            ratingRepo.deleteById(ratingId);
+
+            if (farmer != null) {
+                // Subtract the rating's score and decrement the count
+                updateFarmerAggregates(farmer, -ratingToDelete.getScore(), -1);
+                updateProductAggregates(product, -ratingToDelete.getScore(), -1);
+            }
+
+            return ApiResponse.success("Rating deleted successfully");
+        } catch (Exception e) {
+            logger.error("Failed to delete rating: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to delete rating", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ApiResponse<Set<Rating>> getProductRatings(int productId) {
+        try {
+            Product product;
+            try {
+                product = productRepo.findById(productId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+            } catch (ResourceNotFoundException e) {
+                return ApiResponse.error("Failed to retrieve ratings", e.getMessage());
+            }
+
+            Set<Rating> ratings = product.getRatings();
+            return ApiResponse.success("Ratings retrieved successfully", ratings);
+        } catch (Exception e) {
+            logger.error("Failed to get product ratings: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve ratings", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ApiResponse<Rating> getRatingById(int ratingId) {
+        try {
+            Rating rating;
+            try {
+                rating = ratingRepo.findById(ratingId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Rating not found with ID: " + ratingId));
+            } catch (ResourceNotFoundException e) {
+                return ApiResponse.error("Rating not found", e.getMessage());
+            }
+
+            return ApiResponse.success("Rating retrieved successfully", rating);
+        } catch (Exception e) {
+            logger.error("Failed to get rating: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve rating", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ApiResponse<Set<Rating>> getUserRatings(String consumerEmail) {
+        try {
+            Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);
+            if (consumer == null) {
+                return ApiResponse.error("Failed to retrieve ratings", "Consumer not found with email: " + consumerEmail);
+            }
+
+            Set<Rating> ratings = ratingRepo.findByConsumer_ConsumerId(consumer.getConsumerId());
+            return ApiResponse.success("User ratings retrieved successfully", ratings);
+        } catch (Exception e) {
+            logger.error("Failed to get user ratings: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve ratings", e.getMessage());
+        }
     }
 }

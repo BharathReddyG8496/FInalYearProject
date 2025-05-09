@@ -1,32 +1,27 @@
 package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
-import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.Farmer;
 import com.example.finalyearproject.DataStore.Product;
-import com.example.finalyearproject.Model.JwtRequest;
-import com.example.finalyearproject.Model.JwtResponse;
-import com.example.finalyearproject.Security.JwtHelper;
+import com.example.finalyearproject.DataStore.ProductImage;
 import com.example.finalyearproject.Services.FarmerService;
 import com.example.finalyearproject.Services.ProductService;
-import com.example.finalyearproject.Utility.FarmerUtility;
+import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.ProductResponseUtility;
 import com.example.finalyearproject.Utility.ProductUtility;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,59 +38,126 @@ public class FarmerController {
     @Autowired
     private ProductService productService;
 
-    @PostMapping("/add-product")
-    public ResponseEntity<?> AddProduct(@Valid @ModelAttribute ProductUtility prodUtil){
+    @PostMapping("/product")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Product>> AddProduct(@Valid @ModelAttribute ProductUtility prodUtil) {
         String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        try {
-            Product storedProduct = productService.AddProduct(prodUtil, farmerEmail);
-            return ResponseEntity.ok(storedProduct);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add product.");
+
+        ApiResponse<Product> response = productService.AddProduct(prodUtil, farmerEmail);
+
+        if (response.getData() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 
     // update-farmer
-    @PutMapping("/update-farmer/{farmerId}")
-    public ResponseEntity<Optional<Farmer>> UpdateFarmer(@Valid @RequestBody Farmer farmer, @PathVariable("farmerId")int farmerId){
-        String FarmerName = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println(FarmerName);
-        try{
-            Optional<Farmer> farmer1 = this.farmerService.UpdateFarmer(farmer,FarmerName);
-            if(farmer1.isPresent())
-                return ResponseEntity.ok(farmer1);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    @PutMapping("/update-farmer")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Farmer>> UpdateFarmer(@Valid @RequestBody Farmer farmer) {
+        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        ApiResponse<Farmer> response = farmerService.UpdateFarmer(farmer, farmerEmail);
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    @GetMapping("/get-all-farmer-products")
-    public ResponseEntity<?> GetAllProducts(){
-        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-       try{
-           Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
-           Set<Product> farmerProducts = byFarmerEmail.getFarmerProducts();
-           Set<ProductResponseUtility> response = new HashSet<>();
-           for(Product product:farmerProducts){
-               response.add(ProductResponseUtility.builder().productId(product.getProductId()).
-                       description(product.getDescription()).stock(product.getStock()).price(product.getPrice()).name(product.getName()).category(product.getCategory().toString()).imageUrls(
-                               product.getImages().stream()
-                                       .map(img -> "http://localhost:8081" + img.getFilePath())
-                                       .collect(Collectors.toList())
-                       ).build());
-           }
-           return new ResponseEntity<>(response, HttpStatus.OK);
+    @GetMapping("/my-products")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<Product>>> getMyProducts(Authentication authentication) {
+        String farmerEmail = authentication.getName();
+        ApiResponse<List<Product>> response = productService.getProductsByFarmerEmail(farmerEmail);
+        return ResponseEntity.ok(response);
+    }
 
-       }catch (Exception e){
-           return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-       }
+    // Alternative formatted response if you prefer ProductResponseUtility
+    @GetMapping("/products-formatted")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Set<ProductResponseUtility>>> GetAllProductsFormatted() {
+        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        ApiResponse<List<Product>> productsResponse = productService.getProductsByFarmerEmail(farmerEmail);
+
+        if (productsResponse.getData() != null) {
+            Set<ProductResponseUtility> formattedProducts = productsResponse.getData().stream()
+                    .map(product -> ProductResponseUtility.builder()
+                            .productId(product.getProductId())
+                            .description(product.getDescription())
+                            .stock(product.getStock())
+                            .price(product.getPrice())
+                            .name(product.getName())
+                            .category(product.getCategory().toString())
+                            .imageUrls(product.getImages().stream()
+                                    .map(ProductImage::getFilePath) // No need to hardcode localhost
+                                    .collect(Collectors.toList()))
+                            .build())
+                    .collect(Collectors.toSet());
+
+            return ResponseEntity.ok(ApiResponse.success("Products retrieved successfully", formattedProducts));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Failed to retrieve products", productsResponse.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{productId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Void>> DeleteProduct(@PathVariable("productId") int productId) {
+        String farmerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        ApiResponse<Void> response = productService.DeleteProduct(productId, farmerEmail);
+
+        if (response.getErrors() == null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @PostMapping(value = "/product/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Product>> addProduct(
+            @ModelAttribute @Valid ProductUtility productUtility,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Product> response = productService.AddProduct(productUtility, farmerEmail);
+
+        if (response.getData() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    /**
+     * Delete a product (farmer only)
+     */
+    @DeleteMapping("/product/delete/{productId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            @PathVariable int productId,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Void> response = productService.DeleteProduct(productId, farmerEmail);
+
+        if (response.getErrors() == null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public String exceptionHandler() {
-        return "Credentials Invalid !!";
+    public ResponseEntity<ApiResponse<String>> exceptionHandler() {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Authentication failed", "Invalid credentials"));
     }
-
 }

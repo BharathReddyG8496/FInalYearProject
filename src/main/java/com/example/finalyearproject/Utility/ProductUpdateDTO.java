@@ -7,6 +7,9 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.util.Date;
+
 @Data
 public class ProductUpdateDTO {
     @NotBlank(message = "Product name is required")
@@ -25,4 +28,13 @@ public class ProductUpdateDTO {
 
     @NotNull(message = "Category is required")
     private CategoryType category;
+
+    @NotNull(message = "Harvest Date is required")
+    private LocalDate harvestDate;
+
+    @NotNull(message = "available from is required is required")
+    private LocalDate availableFromDate;
+
+    @NotNull(message = "Organic field is required")
+    private boolean isOrganic;
 }

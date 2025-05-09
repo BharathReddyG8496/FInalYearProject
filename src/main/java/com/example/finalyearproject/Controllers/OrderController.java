@@ -1,63 +1,124 @@
 package com.example.finalyearproject.Controllers;
 
-import com.example.finalyearproject.Abstraction.ConsumerRepo;
 import com.example.finalyearproject.DataStore.Consumer;
+import com.example.finalyearproject.DataStore.OrderItem;
+import com.example.finalyearproject.Services.ConsumerService;
 import com.example.finalyearproject.Services.OrderService;
-import com.example.finalyearproject.Utility.OrderUtility;
+import com.example.finalyearproject.Utility.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 @RestController
-@RequestMapping("/order")
+@RequestMapping("/cart")
 public class OrderController {
 
     @Autowired
     private OrderService orderService;
 
     @Autowired
-    private ConsumerRepo consumerRepo;
+    private ConsumerService consumerService;
 
-    @PostMapping("/add-to-cart/{productId}/{quantity}")
-    public ResponseEntity<OrderUtility> AddToCart(@PathVariable int productId, @PathVariable int quantity){
-        Consumer consumer = consumerRepo.findByConsumerEmail(SecurityContextHolder.getContext().getAuthentication().getName());
-        OrderUtility orderUtility = this.orderService.AddToCart(consumer.getConsumerId(),productId,quantity);
-        if(orderUtility.getOrderItems()==null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+    /**
+     * Add item to cart
+     */
+    @PostMapping("/items")
+    public ResponseEntity<ApiResponse<Set<OrderItem>>> addToCart(
+            @RequestParam int productId,
+            @RequestParam int quantity,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        Consumer consumer = consumerService.findByEmail(email);
+
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Failed to add item to cart", "Consumer not found"));
         }
-        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+
+        ApiResponse<Set<OrderItem>> response =
+                orderService.addToCart(consumer.getConsumerId(), productId, quantity);
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
-    @PostMapping("/remove-from-cart/{orderItemId}/{quantity}")
-    public ResponseEntity<OrderUtility> RemoveFromCart(@PathVariable int orderItemId,@PathVariable int quantity){
-        Consumer consumer = consumerRepo.findByConsumerEmail(SecurityContextHolder.getContext().getAuthentication().getName());
-        OrderUtility orderUtility = this.orderService.RemoveFromCart(consumer.getConsumerId(), orderItemId, quantity);
-        if(orderUtility.getOrderItems()==null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+    /**
+     * Remove item from cart
+     */
+    @DeleteMapping("/items/{orderItemId}")
+    public ResponseEntity<ApiResponse<Set<OrderItem>>> removeFromCart(
+            @PathVariable int orderItemId,
+            @RequestParam int quantity,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        Consumer consumer = consumerService.findByEmail(email);
+
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Failed to remove item from cart", "Consumer not found"));
         }
-        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+
+        ApiResponse<Set<OrderItem>> response =
+                orderService.removeFromCart(consumer.getConsumerId(), orderItemId, quantity);
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
-    @GetMapping("/get-consumer-cart")
-    public ResponseEntity<OrderUtility> GetConsumerCart(){
-        Consumer consumer = consumerRepo.findByConsumerEmail(SecurityContextHolder.getContext().getAuthentication().getName());
-        OrderUtility orderUtility = this.orderService.GetConsumerCart(consumer.getConsumerId());
-        if(orderUtility.getOrderItems()==null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
+    /**
+     * Get consumer's cart
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Set<OrderItem>>> getCart(Authentication authentication) {
+        String email = authentication.getName();
+        Consumer consumer = consumerService.findByEmail(email);
+
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Failed to get cart", "Consumer not found"));
         }
-        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
+
+        ApiResponse<Set<OrderItem>> response = orderService.getConsumerCart(consumer.getConsumerId());
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 
-    @GetMapping("/update-the-ChangesField")
-    public ResponseEntity<OrderUtility> UpdateTheChangesField(){
-        Consumer consumer = consumerRepo.findByConsumerEmail(SecurityContextHolder.getContext().getAuthentication().getName());
-        OrderUtility orderUtility = this.orderService.UpdateTheChangesField(consumer.getConsumerId());
-        if(orderUtility.getOrderItems()==null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(orderUtility);
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(orderUtility);
-    }
+    /**
+     * Acknowledge cart item changes
+     */
+    @PutMapping("/acknowledge-changes")
+    public ResponseEntity<ApiResponse<Set<OrderItem>>> acknowledgeChanges(Authentication authentication) {
+        String email = authentication.getName();
+        Consumer consumer = consumerService.findByEmail(email);
 
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Failed to acknowledge changes", "Consumer not found"));
+        }
+
+        ApiResponse<Set<OrderItem>> response =
+                orderService.acknowledgeChanges(consumer.getConsumerId());
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
 }

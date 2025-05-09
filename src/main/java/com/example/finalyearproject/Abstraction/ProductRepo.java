@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface ProductRepo extends JpaRepository<Product,Integer> {
 
     @Query("select p from Product p where p.productId=:#{#productId}")
-    public Product findProductByProductId(int productId);
+    Product findProductByProductId(int productId);
 
     @Modifying
     @Transactional
@@ -27,7 +27,17 @@ public interface ProductRepo extends JpaRepository<Product,Integer> {
     @Query("delete Product where productId=:#{#productId} and farmer.farmerId=:#{#farmerId}")
     public void deleteByProductId(int productId,int farmerId);
 
-    List<Product> findByCategory(CategoryType category);
+      List<Product> findByCategory(CategoryType category);
 
-    Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
+      Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
+
+        List<Product> findByFarmer_FarmerId(int farmerId);
+
+        List<Product> findByNameContainingIgnoreCase(String query);
+
+        List<Product> findTop10ByOrderByAverageRatingDesc();
+
+        List<Product> findTop10ByOrderByProductIdDesc();
+
+        Optional<Product> findByProductId(int productId);
 }

@@ -2,6 +2,7 @@ package com.example.finalyearproject.Services;
 
 import com.example.finalyearproject.Abstraction.FarmerRepo;
 import com.example.finalyearproject.DataStore.Farmer;
+import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.FarmerRegisterDTO;
 import com.example.finalyearproject.Utility.FarmerUtility;
 import com.cloudinary.Cloudinary;
@@ -34,11 +35,11 @@ public class FarmerService {
     private Cloudinary cloudinary;
 
     @Transactional
-    public FarmerUtility RegisterFarmer(FarmerRegisterDTO dto) {
+    public ApiResponse<Farmer> RegisterFarmer(FarmerRegisterDTO dto) {
         try {
             // Check for existing email or phone
             if (farmerRepo.findByFarmerEmail(dto.getFarmerEmail()) != null) {
-                return new FarmerUtility(400, "Email already registered", null);
+                return ApiResponse.error("Registration failed", "Email already registered");
             }
 
             Farmer farmer = new Farmer();
@@ -61,11 +62,56 @@ public class FarmerService {
             }
 
             Farmer saved = farmerRepo.save(farmer);
-            return new FarmerUtility(200, "Registered", saved);
+            return ApiResponse.success("Farmer registered successfully", saved);
 
         } catch (Exception e) {
             logger.error("Failed to register farmer: {}", e.getMessage(), e);
-            return new FarmerUtility(500, "Failed to register: " + e.getMessage(), null);
+            return ApiResponse.error("Registration failed", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ApiResponse<Farmer> UpdateFarmer(Farmer farmer, String farmerEmail) {
+        try {
+            Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
+            if (byFarmerEmail == null) {
+                return ApiResponse.error("Update failed", "Farmer not found with email: " + farmerEmail);
+            }
+
+            farmerRepo.updateByFarmerId(farmer, byFarmerEmail.getFarmerId());
+            Optional<Farmer> updated = farmerRepo.findByFarmerId(byFarmerEmail.getFarmerId());
+
+            return updated.map(value -> ApiResponse.success("Farmer updated successfully", value)).orElseGet(() -> ApiResponse.error("Update failed", "Failed to retrieve updated farmer"));
+        } catch (Exception e) {
+            logger.error("Failed to update farmer: {}", e.getMessage(), e);
+            return ApiResponse.error("Update failed", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ApiResponse<String> updateProfilePhoto(MultipartFile file, String farmerEmail) {
+        try {
+            Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
+            if (farmer == null) {
+                return ApiResponse.error("Update failed", "Farmer not found with email: " + farmerEmail);
+            }
+
+            // Delete existing photo logic...
+
+            String newPhotoUrl = uploadProfilePhoto(file, farmerEmail);
+            farmer.setProfilePhotoPath(newPhotoUrl);
+            farmerRepo.save(farmer);
+
+            return ApiResponse.success("Profile photo updated successfully", newPhotoUrl);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid file: {}", e.getMessage());
+            return ApiResponse.error("Update failed", e.getMessage());
+        } catch (IOException e) {
+            logger.error("Failed to upload profile photo: {}", e.getMessage(), e);
+            return ApiResponse.error("Update failed", e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error updating profile photo: {}", e.getMessage(), e);
+            return ApiResponse.error("Update failed", e.getMessage());
         }
     }
 
@@ -105,54 +151,4 @@ public class FarmerService {
         }
     }
 
-    @Transactional
-    public Optional<Farmer> UpdateFarmer(Farmer farmer, String farmerEmail) {
-        Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
-        try {
-            farmerRepo.updateByFarmerId(farmer, byFarmerEmail.getFarmerId());
-            return this.farmerRepo.findByFarmerId(byFarmerEmail.getFarmerId());
-        } catch (Exception e) {
-            logger.error("Failed to update farmer: {}", e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Update farmer's profile photo
-     */
-    @Transactional
-    public String updateProfilePhoto(MultipartFile file, String farmerEmail) throws IOException {
-        Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
-        if (farmer == null) {
-            throw new IllegalArgumentException("Farmer not found with email: " + farmerEmail);
-        }
-
-        // If farmer has an existing photo and it's a Cloudinary URL, try to delete it
-        String existingPhotoPath = farmer.getProfilePhotoPath();
-        if (existingPhotoPath != null && existingPhotoPath.contains("cloudinary.com")) {
-            try {
-                // Extract public_id from URL - this may need adjustment based on your URL format
-                String publicId = existingPhotoPath.substring(
-                        existingPhotoPath.lastIndexOf("/") + 1,
-                        existingPhotoPath.lastIndexOf(".")
-                );
-                // Delete from Cloudinary
-                Map<String, String> params = new HashMap<>();
-                params.put("resource_type", "image");
-                cloudinary.uploader().destroy(publicId, params);
-            } catch (Exception e) {
-                logger.warn("Failed to delete existing profile photo: {}", e.getMessage());
-                // Continue with the upload even if deletion fails
-            }
-        }
-
-        // Upload new photo
-        String newPhotoUrl = uploadProfilePhoto(file, farmerEmail);
-
-        // Update farmer record
-        farmer.setProfilePhotoPath(newPhotoUrl);
-        farmerRepo.save(farmer);
-
-        return newPhotoUrl;
-    }
 }
