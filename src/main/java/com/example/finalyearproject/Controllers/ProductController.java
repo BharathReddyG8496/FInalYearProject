@@ -16,11 +16,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 
 @RestController
-@RequestMapping("/product")
+@RequestMapping("product")
 public class ProductController {
 
     @Autowired
@@ -29,8 +28,45 @@ public class ProductController {
     @Autowired
     private ProductImageService productImageService;
 
+//    @GetMapping("products/farmer/{farmerId}")
+//    public ResponseEntity<ApiResponse<List<Product>>> getProductsByFarmer(@PathVariable int farmerId) {
+//        ApiResponse<List<Product>> response = productService.getProductsByFarmerId(farmerId);
+//        return ResponseEntity.ok(response);
+//    }
 
-    @PutMapping("update/{productId}")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Product>> addProduct(
+            @ModelAttribute @Valid ProductUtility productUtility,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Product> response = productService.AddProduct(productUtility, farmerEmail);
+
+        if (response.getData() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @DeleteMapping("/{productId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            @PathVariable int productId,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Void> response = productService.DeleteProduct(productId, farmerEmail);
+
+        if (response.getErrors() == null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @PutMapping("/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")
     public ResponseEntity<ApiResponse<Product>> updateProduct(
             @PathVariable int productId,
@@ -46,12 +82,6 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
-
-//    @GetMapping("products/farmer/{farmerId}")
-//    public ResponseEntity<ApiResponse<List<Product>>> getProductsByFarmer(@PathVariable int farmerId) {
-//        ApiResponse<List<Product>> response = productService.getProductsByFarmerId(farmerId);
-//        return ResponseEntity.ok(response);
-//    }
 
 
     @PostMapping(value = "/images/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -107,9 +137,5 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
-
-    /**
-     * Search products by name (public)
-     */
 
 }

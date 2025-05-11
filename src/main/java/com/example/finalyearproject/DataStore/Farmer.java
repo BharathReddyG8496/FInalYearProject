@@ -41,6 +41,7 @@ public class Farmer implements UserDetails {
     private String lastName;
 
     @NotNull
+    @JsonIgnore
     private String farmerPassword;
 
     @NotNull(message = "Phone number cannot be null")

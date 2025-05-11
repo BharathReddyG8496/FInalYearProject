@@ -4,8 +4,9 @@ import com.example.finalyearproject.Abstraction.FarmerRepo;
 import com.example.finalyearproject.DataStore.Farmer;
 import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.FarmerRegisterDTO;
-import com.example.finalyearproject.Utility.FarmerUtility;
 import com.cloudinary.Cloudinary;
+import com.example.finalyearproject.Utility.FarmerUpdateDTO;
+import com.example.finalyearproject.Utility.FarmerUtility;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,17 +72,43 @@ public class FarmerService {
     }
 
     @Transactional
-    public ApiResponse<Farmer> UpdateFarmer(Farmer farmer, String farmerEmail) {
+    public ApiResponse<FarmerUtility> updateFarmer(FarmerUpdateDTO updateDTO, String farmerEmail) {
         try {
-            Farmer byFarmerEmail = farmerRepo.findByFarmerEmail(farmerEmail);
-            if (byFarmerEmail == null) {
+            Farmer existingFarmer = farmerRepo.findByFarmerEmail(farmerEmail);
+            if (existingFarmer == null) {
                 return ApiResponse.error("Update failed", "Farmer not found with email: " + farmerEmail);
             }
 
-            farmerRepo.updateByFarmerId(farmer, byFarmerEmail.getFarmerId());
-            Optional<Farmer> updated = farmerRepo.findByFarmerId(byFarmerEmail.getFarmerId());
+            // Update only the fields provided in the DTO
+            if (updateDTO.getFirstName() != null && !updateDTO.getFirstName().isEmpty()) {
+                existingFarmer.setFirstName(updateDTO.getFirstName());
+            }
 
-            return updated.map(value -> ApiResponse.success("Farmer updated successfully", value)).orElseGet(() -> ApiResponse.error("Update failed", "Failed to retrieve updated farmer"));
+            if (updateDTO.getLastName() != null && !updateDTO.getLastName().isEmpty()) {
+                existingFarmer.setLastName(updateDTO.getLastName());
+            }
+
+            if (updateDTO.getFarmerPhone() != null && !updateDTO.getFarmerPhone().isEmpty()) {
+                existingFarmer.setFarmerPhone(updateDTO.getFarmerPhone());
+            }
+
+            if (updateDTO.getFarmerAddress() != null && !updateDTO.getFarmerAddress().isEmpty()) {
+                existingFarmer.setFarmerAddress(updateDTO.getFarmerAddress());
+            }
+
+            // Only update password if provided
+//            if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
+//                existingFarmer.setFarmerPassword(passwordEncoder.encode(updateDTO.getPassword()));
+//            }
+
+            // Save the updated farmer
+            Farmer updatedAndSavedFarmer = farmerRepo.save(existingFarmer);
+            FarmerUtility updatedFarmer=new FarmerUtility(
+                    updatedAndSavedFarmer.getFirstName(),
+                    updatedAndSavedFarmer.getLastName(),
+                    updatedAndSavedFarmer.getFarmerPhone(),
+                    updatedAndSavedFarmer.getFarmerAddress());
+            return ApiResponse.success("Farmer updated successfully", updatedFarmer);
         } catch (Exception e) {
             logger.error("Failed to update farmer: {}", e.getMessage(), e);
             return ApiResponse.error("Update failed", e.getMessage());

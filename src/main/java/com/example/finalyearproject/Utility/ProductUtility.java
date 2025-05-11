@@ -12,6 +12,7 @@ import java.util.Date;
 @Data
 @Builder
 public class ProductUtility {
+
     @NotNull
     @NotBlank(message = " product name should not be null ")
     private String name;

@@ -2,15 +2,11 @@ package com.example.finalyearproject.Controllers;
 import com.example.finalyearproject.Abstraction.FarmerRepo;
 import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.Farmer;
-import com.example.finalyearproject.DataStore.Product;
-import com.example.finalyearproject.DataStore.Rating;
 import com.example.finalyearproject.Model.JwtRequest;
 import com.example.finalyearproject.Model.JwtResponse;
 import com.example.finalyearproject.Security.JwtHelper;
 import com.example.finalyearproject.Services.ConsumerService;
 import com.example.finalyearproject.Services.FarmerService;
-import com.example.finalyearproject.Services.ProductService;
-import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.ConsumerRegisterDTO;
 import com.example.finalyearproject.Utility.FarmerRegisterDTO;
@@ -21,14 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/public")
@@ -51,12 +43,6 @@ public class PublicController {
 
     @Autowired
     private FarmerService farmerService;
-
-    @Autowired
-    private RatingServices ratingServices;
-
-    @Autowired
-    private ProductService productService;
 
     @PostMapping(path = "/register-consumer")
     public ResponseEntity<ApiResponse<Consumer>> RegisterConsumer(@Valid @ModelAttribute ConsumerRegisterDTO consumerRegisterDTO) {
@@ -162,52 +148,5 @@ public class PublicController {
                     .body(ApiResponse.error("Authentication failed", "Invalid username or password"));
         }
     }
-    @GetMapping("/products")
-    public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
-        ApiResponse<List<Product>> response = productService.getAllProducts();
-        return ResponseEntity.ok(response);
-    }
 
-    @GetMapping("/products/{productId}")
-    public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable int productId) {
-        ApiResponse<Product> response = productService.getProductById(productId);
-
-        if (response.getData() != null) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
-    }
-
-
-    @GetMapping("products/category/{category}")
-    public ResponseEntity<ApiResponse<List<Product>>> getProductsByCategory(@PathVariable String category) {
-        ApiResponse<List<Product>> response = productService.getProductsByCategory(category);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("products/search")
-    public ResponseEntity<ApiResponse<List<Product>>> searchProducts(@RequestParam String query) {
-        ApiResponse<List<Product>> response = productService.searchProductsByName(query);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/get-product-ratings/{productId}")
-    public ResponseEntity<ApiResponse<Set<Rating>>> getProductRatings(@PathVariable int productId) {
-        try {
-            ApiResponse<Set<Rating>> response = ratingServices.getProductRatings(productId);
-
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to retrieve ratings", e.getMessage()));
-        }
-    }
 }

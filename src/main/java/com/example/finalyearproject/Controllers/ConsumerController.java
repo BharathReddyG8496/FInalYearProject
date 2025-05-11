@@ -1,18 +1,20 @@
 package com.example.finalyearproject.Controllers;
 
-import com.example.finalyearproject.DataStore.Consumer;
-import com.example.finalyearproject.DataStore.DeliveryAddresses;
-import com.example.finalyearproject.Services.ConsumerService;
+
+import com.example.finalyearproject.DataStore.CategoryType;
+import com.example.finalyearproject.DataStore.Product;
+import com.example.finalyearproject.DataStore.Rating;
+import com.example.finalyearproject.Services.ProductService;
+import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.Utility.ApiResponse;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -20,189 +22,57 @@ import java.util.Set;
 public class ConsumerController {
 
     @Autowired
-    private ConsumerService consumerService;
+    private ProductService productService;
 
-    @PutMapping("/update")
-    public ResponseEntity<ApiResponse<Consumer>> updateConsumer(
-            @RequestBody Consumer consumer,
-            Authentication authentication) {
+    @Autowired
+    private RatingServices ratingServices;
 
-        try {
-            String email = authentication.getName();
-            Consumer currentConsumer = consumerService.findByEmail(email);
 
-            if (currentConsumer == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Update failed", "Consumer not found"));
-            }
-
-            // Only update allowed fields, keep ID the same
-            consumer.setConsumerId(currentConsumer.getConsumerId());
-
-            ApiResponse<Consumer> response = consumerService.UpdateConsumer(consumer);
-
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Update failed", e.getMessage()));
-        }
+    @GetMapping("/products")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
+        ApiResponse<List<Product>> response = productService.getAllProducts();
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/profile-photo")
-    public ResponseEntity<ApiResponse<String>> updateProfilePhoto(
-            @RequestParam("file") MultipartFile file,
-            Authentication authentication) {
+    @GetMapping("/products/{productId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Product>> getProductById(@PathVariable int productId) {
+        ApiResponse<Product> response = productService.getProductById(productId);
 
-        try {
-            String email = authentication.getName();
-            ApiResponse<String> response = consumerService.updateProfilePhoto(file, email);
-
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Profile photo update failed", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/address")
-    public ResponseEntity<ApiResponse<Set<DeliveryAddresses>>> addAddress(
-            @Valid @RequestBody DeliveryAddresses deliveryAddress,
-            Authentication authentication) {
-
-        try {
-            String email = authentication.getName();
-            Consumer consumer = consumerService.findByEmail(email);
-
-            if (consumer == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Add address failed", "Consumer not found"));
-            }
-
-            ApiResponse<Set<DeliveryAddresses>> response =
-                    consumerService.AddDeliveryAddress(deliveryAddress, consumer.getConsumerId());
-
-            if (response.getData() != null) {
-                return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Add address failed", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/address/{addressId}")
-    public ResponseEntity<ApiResponse<DeliveryAddresses>> updateAddress(
-            @Valid @RequestBody DeliveryAddresses address,
-            @PathVariable("addressId") int addressId,
-            Authentication authentication) {
-
-        try {
-            String email = authentication.getName();
-            Consumer consumer = consumerService.findByEmail(email);
-
-            if (consumer == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Update address failed", "Consumer not found"));
-            }
-
-            ApiResponse<DeliveryAddresses> response =
-                    consumerService.UpdateDeliveryAddress(address, consumer.getConsumerId(), addressId);
-
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Update address failed", e.getMessage()));
-        }
-    }
-
-    @DeleteMapping("/address/{addressId}")
-    public ResponseEntity<ApiResponse<Set<DeliveryAddresses>>> deleteAddress(
-            @PathVariable("addressId") int addressId,
-            Authentication authentication) {
-
-        try {
-            String email = authentication.getName();
-            Consumer consumer = consumerService.findByEmail(email);
-
-            if (consumer == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Delete address failed", "Consumer not found"));
-            }
-
-            ApiResponse<Set<DeliveryAddresses>> response =
-                    consumerService.DeleteDeliveryAddress(addressId, consumer.getConsumerId());
-
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Delete address failed", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/addresses")
-    public ResponseEntity<ApiResponse<Set<DeliveryAddresses>>> getAllAddresses(
-            Authentication authentication) {
-
-        try {
-            String email = authentication.getName();
-            Consumer consumer = consumerService.findByEmail(email);
-
-            if (consumer == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("Get addresses failed", "Consumer not found"));
-            }
-
-            ApiResponse<Set<DeliveryAddresses>> response =
-                    consumerService.getDeliveryAddresses(consumer.getConsumerId());
-
+        if (response.getData() != null) {
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Get addresses failed", e.getMessage()));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
 
-    @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<Consumer>> getConsumerProfile(
-            Authentication authentication) {
 
-        try {
-            String email = authentication.getName();
-            ApiResponse<Consumer> response = consumerService.getConsumerByEmail(email);
+    @GetMapping("products/category/{category}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<List<Product>>> getProductsByCategory(@PathVariable String category) {
+        ApiResponse<List<Product>> response = productService.getProductsByCategory(category);
+        return ResponseEntity.ok(response);
+    }
 
-            if (response.getData() != null) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Get profile failed", e.getMessage()));
+    @GetMapping("products/search")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<List<Product>>> searchProducts(@RequestParam String query) {
+        ApiResponse<List<Product>> response = productService.searchProductsByName(query);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/getCategories")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<List<String>>> getCategoryList(){
+        List<String> categories=new ArrayList<>();
+        for (CategoryType value : CategoryType.values()) {
+            categories.add(value.toString());
         }
+        return ResponseEntity.ok(ApiResponse.success("categories fetched successfully",categories));
+
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<Void>> exceptionHandler(BadCredentialsException ex) {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Authentication failed", "Invalid credentials"));
-    }
+
 }
