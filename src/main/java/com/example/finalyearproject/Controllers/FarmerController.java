@@ -1,10 +1,8 @@
 package com.example.finalyearproject.Controllers;
 
-import com.example.finalyearproject.DataStore.Farmer;
-import com.example.finalyearproject.DataStore.Product;
-import com.example.finalyearproject.DataStore.ProductImage;
-import com.example.finalyearproject.DataStore.Rating;
+import com.example.finalyearproject.DataStore.*;
 import com.example.finalyearproject.Services.FarmerService;
+import com.example.finalyearproject.Services.OrderService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.Utility.ApiResponse;
@@ -36,6 +34,9 @@ public class FarmerController {
 
     @Autowired
     private RatingServices ratingServices;
+
+    @Autowired
+    private OrderService orderService;
 
 
 
@@ -123,5 +124,50 @@ public class FarmerController {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("Authentication failed", "Invalid credentials"));
+    }
+
+    /**
+     * Mark order as delivered (fix the path)
+     */
+    @PutMapping("/orders/{orderId}/deliver") // Remove redundant "farmer" from path
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Order>> markOrderDelivered(
+            @PathVariable int orderId,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Order> response = orderService.markOrderDelivered(orderId, farmerEmail);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get all orders containing products from this farmer
+     */
+    @GetMapping("/orders")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<Order>>> getFarmerOrders(Authentication authentication) {
+        String farmerEmail = authentication.getName();
+        ApiResponse<List<Order>> response = orderService.getFarmerOrders(farmerEmail);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get specific order details (if it contains farmer's products)
+     */
+    @GetMapping("/orders/{orderId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Order>> getFarmerOrderDetails(
+            @PathVariable int orderId,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<Order> response = orderService.getFarmerOrderDetails(orderId, farmerEmail);
+
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
     }
 }

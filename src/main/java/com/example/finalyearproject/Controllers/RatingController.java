@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/ratings")
+@RequestMapping("/rating")
 public class RatingController {
 
     @Autowired
@@ -23,14 +23,16 @@ public class RatingController {
     /**
      * Add a new rating for a product
      */
-    @PostMapping("/products/{productId}")
+    @PostMapping("/{productId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Rating>> addRating(
             @PathVariable int productId,
+            @RequestParam int orderItemId,  // Added parameter for order item
             @Valid @RequestBody Rating rating,
             Authentication authentication) {
 
         String consumerEmail = authentication.getName();
-        ApiResponse<Rating> response = ratingServices.addRating(rating, consumerEmail, productId);
+        ApiResponse<Rating> response = ratingServices.addRating(rating, consumerEmail, productId, orderItemId);
 
         if (response.getData() != null) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -43,6 +45,7 @@ public class RatingController {
      * Update an existing rating
      */
     @PutMapping("/{ratingId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Rating>> updateRating(
             @PathVariable int ratingId,
             @Valid @RequestBody Rating rating,
@@ -64,6 +67,7 @@ public class RatingController {
      * Delete a rating
      */
     @DeleteMapping("/{ratingId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Void>> deleteRating(
             @PathVariable int ratingId,
             Authentication authentication) {
@@ -94,10 +98,8 @@ public class RatingController {
 
     /**
      * Get all ratings for a specific product
-     * This is also available in PublicController for unauthenticated access
      */
     @GetMapping("/products/{productId}")
-    @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Set<Rating>>> getProductRatings(@PathVariable int productId) {
         ApiResponse<Set<Rating>> response = ratingServices.getProductRatings(productId);
 
@@ -111,15 +113,19 @@ public class RatingController {
     /**
      * Get all ratings by the authenticated user
      */
-    @GetMapping("/my-ratings")
-    @PreAuthorize("hasAnyAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<Set<Rating>>> getMyRatings(Authentication authentication) {
+
+
+    /**
+     * Check if a specific order item can be rated
+     */
+    @GetMapping("/can-rate/{orderItemId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Boolean>> canRateOrderItem(
+            @PathVariable int orderItemId,
+            Authentication authentication) {
+
         String consumerEmail = authentication.getName();
-        ApiResponse<Set<Rating>> response = ratingServices.getUserRatings(consumerEmail);
-        if (response.getData() != null) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-        }
+        ApiResponse<Boolean> response = ratingServices.canRateOrderItem(orderItemId, consumerEmail);
+        return ResponseEntity.ok(response);
     }
 }

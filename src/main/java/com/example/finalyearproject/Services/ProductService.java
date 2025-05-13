@@ -5,16 +5,17 @@ import com.example.finalyearproject.Abstraction.OrderItemRepo;
 import com.example.finalyearproject.Abstraction.OrderRepo;
 import com.example.finalyearproject.Abstraction.ProductRepo;
 import com.example.finalyearproject.DataStore.*;
-import com.example.finalyearproject.Utility.ApiResponse;
-import com.example.finalyearproject.Utility.ProductUpdateDTO;
-import com.example.finalyearproject.Utility.ProductUtility;
-import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
+import com.example.finalyearproject.Specifications.ProductSpecification;
+import com.example.finalyearproject.Utility.*;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +33,9 @@ public class ProductService {
 
     @Autowired
     private OrderItemRepo orderItemRepo;
+
+    @Autowired
+    private ProductSessionManager sessionManager;
 
     @Autowired
     private ProductImageService productImageService;
@@ -116,6 +120,7 @@ public class ProductService {
             existingProduct.setHarvestDate(dto.getHarvestDate());
             existingProduct.setAvailableFromDate(dto.getAvailableFromDate());
             existingProduct.setOrganic(dto.isOrganic());
+            existingProduct.setImages(existingProduct.getImages());
 
             productRepo.save(existingProduct);
 
@@ -123,7 +128,7 @@ public class ProductService {
             if (existingProduct.getOrderItems() != null && !existingProduct.getOrderItems().isEmpty()) {
                 for (OrderItem item : existingProduct.getOrderItems()) {
                     Order order = item.getOrder();
-                    if (!"CREATED".equals(order.getOrderStatus())) {
+                    if (!"CREATED".equals(order.getOrderStatus().toString())) {
                         continue;
                     }
 
@@ -344,4 +349,94 @@ public class ProductService {
             return ApiResponse.error("Failed to retrieve recent products", e.getMessage());
         }
     }
+
+    public ApiResponse<Page<Product>> getFilteredProducts(ProductFilterDTO filterDTO) {
+        try {
+            // Create the specification from filter
+            Specification<Product> spec = ProductSpecification.getFilteredProducts(filterDTO);
+
+            // Create sort based on the sortBy parameter
+            Sort sort = Sort.unsorted();
+            if (filterDTO.getSortBy() != null) {
+                sort = switch (filterDTO.getSortBy()) {
+                    case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
+                    case "price_desc" -> Sort.by(Sort.Direction.DESC, "price");
+                    case "name_asc" -> Sort.by(Sort.Direction.ASC, "name");
+                    case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
+                    case "date_asc" -> Sort.by(Sort.Direction.ASC, "availableFromDate");
+                    case "date_desc" -> Sort.by(Sort.Direction.DESC, "availableFromDate");
+                    default ->
+                        // Default sort
+                            Sort.by(Sort.Direction.DESC, "productId");
+                };
+            }
+
+            // Create pageable with sort and pagination
+            Pageable pageable = PageRequest.of(
+                    filterDTO.getPage(),
+                    filterDTO.getSize(),
+                    sort
+            );
+
+            // Fetch filtered products
+            Page<Product> products = productRepo.findAll(spec, pageable);
+
+            return ApiResponse.success("Products retrieved successfully", products);
+        } catch (Exception e) {
+            logger.error("Failed to filter products: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to filter products", e.getMessage());
+        }
+    }
+
+    public ApiResponse<Page<Product>> getRandomProductsPaginated(Pageable pageable) {
+        try {
+            // Initialize shuffled product IDs if not done already
+            if (!sessionManager.hasShuffledIds()) {
+                List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
+                sessionManager.setShuffledProductIds(allProductIds);
+            }
+
+            // Get the specific page of product IDs
+            List<Integer> pageProductIds = sessionManager.getPageOfIds(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize());
+
+            if (pageProductIds.isEmpty()) {
+                return ApiResponse.success(
+                        "No more products available",
+                        new PageImpl<>(Collections.emptyList(), pageable, sessionManager.getShuffledProductIds().size())
+                );
+            }
+
+            // Fetch the actual products in the order of the IDs
+            List<Product> products = productRepo.findByProductIdsInOrderNative(pageProductIds);
+
+            // Create a Page object
+            Page<Product> productPage = new PageImpl<>(
+                    products,
+                    pageable,
+                    sessionManager.getShuffledProductIds().size()
+            );
+
+            return ApiResponse.success("Random products retrieved successfully", productPage);
+        } catch (Exception e) {
+            logger.error("Failed to get random products: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve random products", e.getMessage());
+        }
+    }
+
+    /**
+     * Reset the random order (can be called when a user explicitly wants a new shuffle)
+     */
+    public ApiResponse<String> resetRandomOrder() {
+        try {
+            List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
+            sessionManager.setShuffledProductIds(allProductIds);
+            return ApiResponse.success("Random product order has been reset", null);
+        } catch (Exception e) {
+            logger.error("Failed to reset random order: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to reset random order", e.getMessage());
+        }
+    }
+
 }

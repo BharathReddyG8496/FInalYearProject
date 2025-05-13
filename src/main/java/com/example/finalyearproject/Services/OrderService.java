@@ -1,315 +1,218 @@
 package com.example.finalyearproject.Services;
 
-import com.example.finalyearproject.Abstraction.ConsumerRepo;
-import com.example.finalyearproject.Abstraction.OrderItemRepo;
-import com.example.finalyearproject.Abstraction.OrderRepo;
-import com.example.finalyearproject.Abstraction.ProductRepo;
-import com.example.finalyearproject.DataStore.Consumer;
-import com.example.finalyearproject.DataStore.Order;
-import com.example.finalyearproject.DataStore.OrderItem;
-import com.example.finalyearproject.DataStore.Product;
+import com.example.finalyearproject.Abstraction.*;
+import com.example.finalyearproject.DataStore.*;
 import com.example.finalyearproject.Utility.ApiResponse;
+import com.example.finalyearproject.Utility.OrderPlacementDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
-
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
-    @Autowired
-    private OrderItemRepo orderItemRepo;
 
     @Autowired
     private OrderRepo orderRepo;
 
-    @Autowired
-    private ConsumerRepo consumerRepo;
 
     @Autowired
     private ProductRepo productRepo;
 
+    @Autowired
+    private FarmerRepo farmerRepo;
+
     /**
-     * Add product to cart
+     * Place order and reduce product stock
+     * Uses higher isolation level to prevent overselling
      */
-    @Transactional
-    public ApiResponse<Set<OrderItem>> addToCart(int consumerId, int productId, int quantity) {
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public ApiResponse<Order> placeOrder(int consumerId, OrderPlacementDTO placementDTO) {
         try {
-            // Input validation
-            if (quantity <= 0) {
-                return ApiResponse.error("Invalid quantity", "Quantity must be a positive number");
+            // Get active cart
+            Order cart = orderRepo.findActiveCartByConsumerId(consumerId);
+            if (cart == null || cart.getOrderItems().isEmpty()) {
+                return ApiResponse.error("Empty cart", "Your cart is empty");
             }
 
-            // Get consumer and product
-            Consumer consumer = consumerRepo.findConsumerByConsumerId(consumerId);
-            Product product = productRepo.findProductByProductId(productId);
+            // Check if all items are still in stock
+            StringBuilder stockErrors = new StringBuilder();
+            boolean hasStockError = false;
 
-            if (product == null) {
-                return ApiResponse.error("Product not found", "Product not found with ID: " + productId);
-            }
-
-            // Check stock availability
-            if (quantity > product.getStock()) {
-                return ApiResponse.error("Insufficient stock",
-                        "Requested quantity (" + quantity + ") exceeds available stock (" + product.getStock() + ")");
-            }
-
-            // Calculate item price with proper decimal handling
-            BigDecimal unitPrice = BigDecimal.valueOf(product.getPrice())
-                    .multiply(BigDecimal.valueOf(quantity))
-                    .setScale(2, RoundingMode.HALF_UP);
-
-            // Find or create cart
-            Order cart = findOrCreateCart(consumer);
-
-            // Check if product already exists in cart
             for (OrderItem item : cart.getOrderItems()) {
-                if (item.getProduct().getProductId() == productId) {
-                    // Check combined quantity against stock
-                    int newTotalQuantity = item.getQuantity() + quantity;
-                    if (newTotalQuantity > product.getStock()) {
-                        return ApiResponse.error("Insufficient stock",
-                                "Total quantity (" + newTotalQuantity + ") exceeds available stock (" + product.getStock() + ")");
-                    }
+                // Reload product to get latest stock
+                Product product = productRepo.findById(item.getProduct().getProductId()).orElse(null);
+                if (product == null) {
+                    stockErrors.append("Product ").append(item.getProduct().getName())
+                            .append(" is no longer available. ");
+                    hasStockError = true;
+                    continue;
+                }
 
-                    // Update existing item
-                    BigDecimal newItemPrice = BigDecimal.valueOf(product.getPrice())
-                            .multiply(BigDecimal.valueOf(newTotalQuantity))
-                            .setScale(2, RoundingMode.HALF_UP);
-
-                    item.setQuantity(newTotalQuantity);
-                    item.setUnitPrice(newItemPrice.doubleValue());
-
-                    // Update order total
-                    BigDecimal additionalAmount = BigDecimal.valueOf(product.getPrice())
-                            .multiply(BigDecimal.valueOf(quantity))
-                            .setScale(2, RoundingMode.HALF_UP);
-
-                    BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
-                            .add(additionalAmount)
-                            .setScale(2, RoundingMode.HALF_UP);
-
-                    cart.setTotalAmount(newTotal.doubleValue());
-
-                    // Save changes
-                    orderItemRepo.save(item);
-                    orderRepo.save(cart);
-
-                    return ApiResponse.success("Item quantity updated in cart", cart.getOrderItems());
+                if (product.getStock() < item.getQuantity()) {
+                    stockErrors.append("Only ").append(product.getStock())
+                            .append(" units available for ").append(product.getName())
+                            .append(" (requested: ").append(item.getQuantity()).append("). ");
+                    hasStockError = true;
                 }
             }
 
-            // Add new item to cart
-            OrderItem newItem = new OrderItem();
-            newItem.setProduct(product);
-            newItem.setQuantity(quantity);
-            newItem.setUnitPrice(unitPrice.doubleValue());
-            newItem.setOrder(cart);
-
-            // Update product's order items if needed
-            if (product.getOrderItems() == null) {
-                product.setOrderItems(new HashSet<>());
+            if (hasStockError) {
+                return ApiResponse.error("Insufficient stock", stockErrors.toString());
             }
-            product.getOrderItems().add(newItem);
 
-            // Update cart
-            cart.getOrderItems().add(newItem);
-            BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
-                    .add(unitPrice)
-                    .setScale(2, RoundingMode.HALF_UP);
-            cart.setTotalAmount(newTotal.doubleValue());
+            // Set shipping information
+            if (placementDTO != null) {
+                cart.setShippingAddress(placementDTO.getShippingAddress());
+                cart.setShippingCity(placementDTO.getShippingCity());
+                cart.setShippingState(placementDTO.getShippingState());
+                cart.setShippingZip(placementDTO.getShippingZip());
+            }
 
-            // Save everything
-            orderItemRepo.save(newItem);
-            orderRepo.save(cart);
+            // Update stock for each product
+            for (OrderItem item : cart.getOrderItems()) {
+                Product product = item.getProduct();
+                int newStock = product.getStock() - item.getQuantity();
+                product.setStock(newStock);
+                productRepo.save(product);
+            }
 
-            return ApiResponse.success("Item added to cart", cart.getOrderItems());
+            // Update order status
+            cart.place(); // Sets status to PLACED and timestamps
+            Order placedOrder = orderRepo.save(cart);
+
+            return ApiResponse.success("Order placed successfully", placedOrder);
         } catch (Exception e) {
-            logger.error("Failed to add to cart: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to add item to cart", e.getMessage());
+            logger.error("Failed to place order: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to place order", e.getMessage());
         }
     }
 
     /**
-     * Find existing cart or create a new one
+     * Get order history for a consumer
      */
-    private Order findOrCreateCart(Consumer consumer) {
-        // Check if consumer has any orders
-        if (consumer.getConsumerOrder() != null) {
-            // Look for an existing cart (order with status CREATED)
-            for (Order order : consumer.getConsumerOrder()) {
-                if ("CREATED".equals(order.getOrderStatus())) {
-                    return order;
-                }
-            }
-        }
-
-        // Create a new cart if none exists
-        Order newCart = new Order();
-        newCart.setConsumer(consumer);
-        newCart.setOrderStatus("CREATED");
-        newCart.setTotalAmount(0.0);
-        newCart.setOrderItems(new HashSet<>());
-
-        // Save the new cart
-        Order savedCart = orderRepo.save(newCart);
-
-        // Initialize consumer's order set if needed
-        if (consumer.getConsumerOrder() == null) {
-            consumer.setConsumerOrder(new HashSet<>());
-        }
-
-        // Add the new cart to consumer's orders
-        consumer.getConsumerOrder().add(savedCart);
-
-        return savedCart;
+    public List<Order> getOrderHistory(int consumerId) {
+        return orderRepo.findByConsumer_ConsumerIdOrderByCreatedAtDesc(consumerId);
     }
 
     /**
-     * Remove item from cart
+     * Get order by ID
      */
+    public Order getOrderById(int orderId) {
+        return orderRepo.findById(orderId).orElse(null);
+    }
+
     @Transactional
-    public ApiResponse<Set<OrderItem>> removeFromCart(int consumerId, int orderItemId, int quantity) {
+    public ApiResponse<Order> markOrderDelivered(int orderId, String farmerEmail) {
         try {
-            // Input validation
-            if (quantity <= 0) {
-                return ApiResponse.error("Invalid quantity", "Quantity must be a positive number");
+            Order order = orderRepo.findById(orderId).orElse(null);
+            if (order == null) {
+                return ApiResponse.error("Update failed", "Order not found");
             }
 
-            // Find cart item
-            OrderItem orderItem = orderItemRepo.findOrderItemWithStatusCREATED(consumerId, orderItemId);
-            if (orderItem == null) {
-                return ApiResponse.error("Item not found", "No active cart item found with ID: " + orderItemId);
+            // Simple check if any product in the order belongs to this farmer
+            boolean hasProductFromFarmer = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getFarmer().getFarmerEmail().equalsIgnoreCase(farmerEmail));
+
+            if (!hasProductFromFarmer) {
+                return ApiResponse.error("Update failed", "Unauthorized to update this order");
             }
 
-            // Find cart
-            Order cart = orderRepo.findByStatusAndConsumerId("CREATED", consumerId);
-            if (cart == null) {
-                return ApiResponse.error("Cart not found", "No active cart found");
+            // Only allow updating PLACED orders
+            if (order.getOrderStatus() != OrderStatus.PLACED) {
+                return ApiResponse.error("Update failed", "Order is not in PLACED status");
             }
 
-            Product product = orderItem.getProduct();
+            order.setOrderStatus(OrderStatus.DELIVERED);
+            Order updatedOrder = orderRepo.save(order);
 
-            // Handle removing entire item or reducing quantity
-            if (quantity >= orderItem.getQuantity()) {
-                // Remove entire item
-
-                // Update cart total
-                BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
-                        .subtract(BigDecimal.valueOf(orderItem.getUnitPrice()))
-                        .setScale(2, RoundingMode.HALF_UP);
-                cart.setTotalAmount(newTotal.doubleValue());
-
-                // Remove from collections and database
-                cart.getOrderItems().remove(orderItem);
-                if (product != null && product.getOrderItems() != null) {
-                    product.getOrderItems().remove(orderItem);
-                }
-                orderItemRepo.delete(orderItem);
-
-                // Save cart
-                orderRepo.save(cart);
-
-                if (cart.getOrderItems().isEmpty()) {
-                    return ApiResponse.success("Cart is now empty", new HashSet<>());
-                }
-
-                return ApiResponse.success("Item removed from cart", cart.getOrderItems());
-            } else {
-                // Reduce quantity
-                BigDecimal reducedPrice = BigDecimal.valueOf(product.getPrice())
-                        .multiply(BigDecimal.valueOf(quantity))
-                        .setScale(2, RoundingMode.HALF_UP);
-
-                // Update item
-                int newQuantity = orderItem.getQuantity() - quantity;
-                BigDecimal newItemPrice = BigDecimal.valueOf(product.getPrice())
-                        .multiply(BigDecimal.valueOf(newQuantity))
-                        .setScale(2, RoundingMode.HALF_UP);
-
-                orderItem.setQuantity(newQuantity);
-                orderItem.setUnitPrice(newItemPrice.doubleValue());
-
-                // Update cart total
-                BigDecimal newTotal = BigDecimal.valueOf(cart.getTotalAmount())
-                        .subtract(reducedPrice)
-                        .setScale(2, RoundingMode.HALF_UP);
-                cart.setTotalAmount(newTotal.doubleValue());
-
-                // Save changes
-                orderItemRepo.save(orderItem);
-                orderRepo.save(cart);
-
-                return ApiResponse.success("Item quantity reduced in cart", cart.getOrderItems());
-            }
+            return ApiResponse.success("Order marked as delivered", updatedOrder);
         } catch (Exception e) {
-            logger.error("Failed to remove from cart: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to remove item from cart", e.getMessage());
+            logger.error("Failed to mark order as delivered: {}", e.getMessage(), e);
+            return ApiResponse.error("Update failed", e.getMessage());
         }
     }
 
-    /**
-     * Get consumer's cart
-     */
-    public ApiResponse<Set<OrderItem>> getConsumerCart(int consumerId) {
-        try {
-            // Find cart
-            Order cart = orderRepo.getConsumersCart(consumerId);
-            if (cart == null) {
-                return ApiResponse.success("Cart is empty", new HashSet<>());
-            }
-
-            // Get cart items
-            Set<OrderItem> orderItems = cart.getOrderItems();
-            if (orderItems == null || orderItems.isEmpty()) {
-                return ApiResponse.success("Cart is empty", new HashSet<>());
-            }
-
-            return ApiResponse.success("Cart retrieved successfully", orderItems);
-        } catch (Exception e) {
-            logger.error("Failed to get cart: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to retrieve cart", e.getMessage());
-        }
-    }
-
-    /**
-     * Acknowledge changes in cart items
-     */
     @Transactional
-    public ApiResponse<Set<OrderItem>> acknowledgeChanges(int consumerId) {
+    public ApiResponse<Order> confirmOrderReceipt(int orderId, String consumerEmail) {
         try {
-            // Find cart
-            Order cart = orderRepo.getConsumersCart(consumerId);
-            if (cart == null) {
-                return ApiResponse.success("Cart is empty", new HashSet<>());
+            Order order = orderRepo.findById(orderId).orElse(null);
+            if (order == null) {
+                return ApiResponse.error("Update failed", "Order not found");
             }
 
-            // Get cart items
-            Set<OrderItem> orderItems = cart.getOrderItems();
-            if (orderItems == null || orderItems.isEmpty()) {
-                return ApiResponse.success("Cart is empty", new HashSet<>());
+            // Verify order belongs to this consumer
+            if (!order.getConsumer().getConsumerEmail().equalsIgnoreCase(consumerEmail)) {
+                return ApiResponse.error("Update failed", "You don't have permission to update this order");
             }
 
-            // Clear change flags
-            for (OrderItem item : orderItems) {
-                if (item.getFieldChange() != null) {
-                    item.setFieldChange(null);
-                    orderItemRepo.save(item);
-                }
+            // Only allow confirming DELIVERED orders
+            if (order.getOrderStatus() != OrderStatus.DELIVERED) {
+                return ApiResponse.error("Update failed", "Order is not in DELIVERED status");
             }
 
-            return ApiResponse.success("Changes acknowledged successfully", orderItems);
+            order.setOrderStatus(OrderStatus.COMPLETED);
+            Order updatedOrder = orderRepo.save(order);
+
+            return ApiResponse.success("Order receipt confirmed", updatedOrder);
         } catch (Exception e) {
-            logger.error("Failed to acknowledge changes: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to acknowledge changes", e.getMessage());
+            logger.error("Failed to confirm order receipt: {}", e.getMessage(), e);
+            return ApiResponse.error("Update failed", e.getMessage());
+        }
+    }
+
+    /**
+     * Get all orders containing products from a specific farmer with PLACED status
+     */
+    public ApiResponse<List<Order>> getFarmerOrders(String farmerEmail) {
+        try {
+            // Verify farmer exists
+            Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
+            if (farmer == null) {
+                return ApiResponse.error("Failed to retrieve orders", "Farmer not found");
+            }
+
+            List<Order> orders = orderRepo.findPlacedOrdersContainingFarmerProducts(farmerEmail);
+            return ApiResponse.success("Farmer orders retrieved successfully", orders);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve farmer orders: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve orders", e.getMessage());
+        }
+    }
+
+    /**
+     * Get details for a specific order if it contains products from this farmer
+     */
+    public ApiResponse<Order> getFarmerOrderDetails(int orderId, String farmerEmail) {
+        try {
+            Order order = orderRepo.findById(orderId).orElse(null);
+            if (order == null) {
+                return ApiResponse.error("Order not found", "No order found with ID: " + orderId);
+            }
+
+            // Check if order contains any products from this farmer
+            boolean hasProductFromFarmer = order.getOrderItems().stream()
+                    .anyMatch(item -> item.getProduct().getFarmer().getFarmerEmail().equalsIgnoreCase(farmerEmail));
+
+            if (!hasProductFromFarmer) {
+                return ApiResponse.error("Access denied", "This order does not contain your products");
+            }
+
+            return ApiResponse.success("Order details retrieved", order);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve order details: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve order details", e.getMessage());
         }
     }
 }

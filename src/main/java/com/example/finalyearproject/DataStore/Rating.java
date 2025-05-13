@@ -1,6 +1,7 @@
 package com.example.finalyearproject.DataStore;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -8,12 +9,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 public class Rating {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int ratingId;
@@ -21,33 +22,42 @@ public class Rating {
     @NotNull(message = "Score cannot be null")
     @Min(value = 1, message = "Score must be at least 1")
     @Max(value = 5, message = "Score cannot exceed 5")
-    private int Score;
+    private int score; // Changed to lowercase
 
     @NotBlank(message = "Comment cannot be null")
     @Size(max = 500, message = "Comment cannot exceed 500 characters")
-    private String Comment;
+    private String comment; // Changed to lowercase
 
     private LocalDateTime timestamp;
 
+    @PrePersist
+    protected void onCreate() {
+        timestamp = LocalDateTime.now();
+    }
+
     @ManyToOne
-//    @JoinColumn(name = "ConsumerId",insertable = false,updatable = false)
+    @JoinColumn(name = "consumer_id")
     @JsonBackReference("consumer-ratings")
     private Consumer consumer;
 
     @ManyToOne
+    @JoinColumn(name = "product_id")
     @JsonBackReference("product-ratings")
-//    @JoinColumn(name = "FarmerId",insertable = false,updatable = false)
     private Product product;
 
+    @ManyToOne
+    @JoinColumn(name = "order_item_id")
+    @JsonBackReference("orderitem-ratings")
+    private OrderItem orderItem;
+
+    // Safer toString implementation
     @Override
     public String toString() {
         return "Rating{" +
                 "ratingId=" + ratingId +
-                ", Score=" + Score +
-                ", Comment='" + Comment + '\'' +
+                ", score=" + score +
+                ", comment='" + comment + '\'' +
                 ", timestamp=" + timestamp +
-                ", consumer=" + consumer +
-                ", product=" + product +
                 '}';
     }
 }

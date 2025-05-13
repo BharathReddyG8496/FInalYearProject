@@ -1,12 +1,13 @@
 package com.example.finalyearproject.Controllers;
 
 
-import com.example.finalyearproject.DataStore.CategoryType;
-import com.example.finalyearproject.DataStore.Product;
-import com.example.finalyearproject.DataStore.Rating;
+import com.example.finalyearproject.DataStore.*;
+import com.example.finalyearproject.Services.ConsumerService;
+import com.example.finalyearproject.Services.OrderService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.Utility.ApiResponse;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +26,13 @@ public class ConsumerController {
     private ProductService productService;
 
     @Autowired
-    private RatingServices ratingServices;
+    private OrderService orderService;
 
+    @Autowired
+    private ConsumerService consumerService;
+
+    @Autowired
+    private RatingServices ratingServices;
 
     @GetMapping("/products")
     @PreAuthorize("hasAuthority('CONSUMER')")
@@ -71,8 +77,77 @@ public class ConsumerController {
             categories.add(value.toString());
         }
         return ResponseEntity.ok(ApiResponse.success("categories fetched successfully",categories));
-
     }
 
+    /**
+     * Get consumer's order history
+     */
+    @GetMapping("/orders")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<List<Order>>> getMyOrders(Authentication authentication) {
+        String consumerEmail = authentication.getName();
 
+        // Find consumer by email
+        Consumer consumer = consumerService.findByEmail(consumerEmail);
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Consumer not found", "Authentication failed"));
+        }
+
+        // Get orders for this consumer
+        List<Order> orders = orderService.getOrderHistory(consumer.getConsumerId());
+        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+    }
+
+    /**
+     * Get specific order details
+     */
+    @GetMapping("/orders/{orderId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Order>> getMyOrderDetails(
+            @PathVariable int orderId,
+            Authentication authentication) {
+
+        String consumerEmail = authentication.getName();
+
+        // Find consumer
+        Consumer consumer = consumerService.findByEmail(consumerEmail);
+        if (consumer == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Consumer not found", "Authentication failed"));
+        }
+
+        // Get order and verify ownership
+        Order order = orderService.getOrderById(orderId);
+        if (order == null || order.getConsumer().getConsumerId() != consumer.getConsumerId()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Order not found", "No such order found"));
+        }
+
+        return ResponseEntity.ok(ApiResponse.success("Order details retrieved", order));
+    }
+
+    @PutMapping("/orders/{orderId}/confirm")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Order>> confirmOrderReceipt(
+            @PathVariable int orderId,
+            Authentication authentication) {
+
+        String consumerEmail = authentication.getName();
+        ApiResponse<Order> response = orderService.confirmOrderReceipt(orderId, consumerEmail);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-ratings")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Set<Rating>>> getMyRatings(Authentication authentication) {
+        String consumerEmail = authentication.getName();
+        ApiResponse<Set<Rating>> response = ratingServices.getUserRatings(consumerEmail);
+        if (response.getData() != null) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
 }
