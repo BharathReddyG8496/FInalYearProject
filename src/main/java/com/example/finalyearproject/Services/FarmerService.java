@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,9 +39,14 @@ public class FarmerService {
     @Transactional
     public ApiResponse<Farmer> RegisterFarmer(FarmerRegisterDTO dto) {
         try {
-            // Check for existing email or phone
+            // Check for existing email
             if (farmerRepo.findByFarmerEmail(dto.getFarmerEmail()) != null) {
                 return ApiResponse.error("Registration failed", "Email already registered");
+            }
+
+            // Check for existing phone if you have a repository method for it
+            if (farmerRepo.findByFarmerPhone(dto.getFarmerPhone()) != null) {
+                return ApiResponse.error("Registration failed", "Phone number already registered");
             }
 
             Farmer farmer = new Farmer();
@@ -64,10 +70,13 @@ public class FarmerService {
 
             Farmer saved = farmerRepo.save(farmer);
             return ApiResponse.success("Farmer registered successfully", saved);
-
+        } catch (DataIntegrityViolationException e) {
+            // Re-throw constraint violations to be handled by the global exception handler
+            logger.error("Database constraint violation during farmer registration", e);
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to register farmer: {}", e.getMessage(), e);
-            return ApiResponse.error("Registration failed", e.getMessage());
+            return ApiResponse.error("Registration failed", "An unexpected error occurred. Please try again.");
         }
     }
 

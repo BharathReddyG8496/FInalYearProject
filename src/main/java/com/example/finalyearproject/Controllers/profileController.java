@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/profile")
+@RequestMapping("/consumer/profile")
 public class profileController {
 
     @Autowired
@@ -179,7 +179,7 @@ public class profileController {
         }
     }
 
-    @GetMapping("/profile")
+    @GetMapping
     public ResponseEntity<ApiResponse<Consumer>> getConsumerProfile(
             Authentication authentication) {
 

@@ -38,4 +38,7 @@ public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
     Consumer findByConsumerEmail(String consumerEmail);
 
     Optional<Consumer> findConsumerByConsumerEmail(String consumerEmail);
+
+    // In ConsumerRepo
+    Consumer findByConsumerPhone(String phone);
 }

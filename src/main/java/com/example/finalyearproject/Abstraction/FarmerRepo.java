@@ -21,4 +21,6 @@ public interface FarmerRepo extends JpaRepository<Farmer,Integer> {
      void updateByFarmerId(Farmer farmer,int farmerId);
 
     Farmer findByFarmerEmail(String farmerEmail);
+    // In FarmerRepo
+    Farmer findByFarmerPhone(String phone);
 }

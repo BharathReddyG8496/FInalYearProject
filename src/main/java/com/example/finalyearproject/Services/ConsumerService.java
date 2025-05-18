@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -66,8 +67,14 @@ public class ConsumerService {
     @Transactional
     public ApiResponse<Consumer> RegisterConsumer(ConsumerRegisterDTO dto) {
         try {
+            // Check for existing email first
             if (consumerRepo.findByConsumerEmail(dto.getConsumerEmail()) != null) {
                 return ApiResponse.error("Registration failed", "Email already registered");
+            }
+
+            // Check for existing phone if you have a repository method for it
+            if (consumerRepo.findByConsumerPhone(dto.getConsumerPhone()) != null) {
+                return ApiResponse.error("Registration failed", "Phone number already registered");
             }
 
             Consumer consumer = new Consumer();
@@ -91,9 +98,13 @@ public class ConsumerService {
 
             Consumer saved = consumerRepo.save(consumer);
             return ApiResponse.success("Consumer registered successfully", saved);
+        } catch (DataIntegrityViolationException e) {
+            // Re-throw constraint violations to be handled by the global exception handler
+            logger.error("Database constraint violation during consumer registration", e);
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to register consumer: {}", e.getMessage(), e);
-            return ApiResponse.error("Registration failed", e.getMessage());
+            return ApiResponse.error("Registration failed", "An unexpected error occurred. Please try again.");
         }
     }
 
