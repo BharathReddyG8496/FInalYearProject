@@ -4,10 +4,7 @@ import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.DataStore.ProductImage;
 import com.example.finalyearproject.Services.ProductImageService;
 import com.example.finalyearproject.Services.ProductService;
-import com.example.finalyearproject.Utility.ApiResponse;
-import com.example.finalyearproject.Utility.ProductFilterDTO;
-import com.example.finalyearproject.Utility.ProductUpdateDTO;
-import com.example.finalyearproject.Utility.ProductUtility;
+import com.example.finalyearproject.Utility.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -69,6 +66,7 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+
 
     @PutMapping("/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")
@@ -152,7 +150,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/products/random")
+    @GetMapping("/random")
     public ResponseEntity<ApiResponse<Page<Product>>> getRandomProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -164,20 +162,25 @@ public class ProductController {
     /**
      * Get random products for home page (consumer only) with pagination
      */
-    @GetMapping("/products")
+    @GetMapping
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Page<Product>>> getRandomProductsForConsumer(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+
+
+
         Pageable pageable = PageRequest.of(page, size);
+
         ApiResponse<Page<Product>> response = productService.getRandomProductsPaginated(pageable);
+
         return ResponseEntity.ok(response);
     }
 
     /**
      * Reset the random ordering (useful for forcing a new shuffle)
      */
-    @PostMapping("/products/random/reset")
+    @PostMapping("/random/reset")
     public ResponseEntity<ApiResponse<String>> resetRandomOrder() {
         ApiResponse<String> response = productService.resetRandomOrder();
         return ResponseEntity.ok(response);

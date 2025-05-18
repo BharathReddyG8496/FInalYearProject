@@ -95,6 +95,23 @@ public class FarmerController {
                     .body(ApiResponse.error("Failed to retrieve products", productsResponse.getMessage()));
         }
     }
+
+    @GetMapping("product/{productId}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Product>> getProduct(
+            @PathVariable int productId,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+
+        ApiResponse<Product> productByIdAndFarmerEmail = productService.getProductByIdAndFarmerEmail(productId, farmerEmail);
+
+        if (productByIdAndFarmerEmail.getData() != null) {
+            return ResponseEntity.ok(productByIdAndFarmerEmail);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(productByIdAndFarmerEmail);
+
+    }
     /**
      * Delete a product (farmer only)
      */

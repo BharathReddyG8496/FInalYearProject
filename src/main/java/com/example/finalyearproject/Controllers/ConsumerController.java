@@ -7,6 +7,9 @@ import com.example.finalyearproject.Services.OrderService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Services.RatingServices;
 import com.example.finalyearproject.Utility.ApiResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,7 +37,7 @@ public class ConsumerController {
     @Autowired
     private RatingServices ratingServices;
 
-    @GetMapping("/products")
+    @GetMapping("/products/all")
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
         ApiResponse<List<Product>> response = productService.getAllProducts();
@@ -57,6 +60,19 @@ public class ConsumerController {
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<List<Product>>> getProductsByCategory(@PathVariable String category) {
         ApiResponse<List<Product>> response = productService.getProductsByCategory(category);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/products")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<Page<Product>>> getProductsForConsumer(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        ApiResponse<Page<Product>> response = productService.getRandomProductsPaginated(pageable);
+
         return ResponseEntity.ok(response);
     }
 
@@ -101,4 +117,5 @@ public class ConsumerController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
+
 }
