@@ -53,21 +53,25 @@ public class OrderController {
     /**
      * Get order history
      */
-    @GetMapping
+    @GetMapping("/orders")
     @PreAuthorize("hasAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<List<Order>>> getOrderHistory(Authentication authentication) {
-        Consumer consumer = consumerService.findByEmail(authentication.getName());
+    public ResponseEntity<ApiResponse<List<Order>>> getOrders(Authentication authentication) {
+        String consumerEmail = authentication.getName();
+
+        // Find consumer by email
+        Consumer consumer = consumerService.findByEmail(consumerEmail);
         if (consumer == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Consumer not found", "Authentication failed"));
         }
 
+        // Get orders for this consumer
         List<Order> orders = orderService.getOrderHistory(consumer.getConsumerId());
-        return ResponseEntity.ok(ApiResponse.success("Order history retrieved", orders));
+        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
     }
 
     /**
-     * Get order details
+     * Get specified order details
      */
     @GetMapping("/{orderId}")
     @PreAuthorize("hasAuthority('CONSUMER')")
@@ -91,4 +95,5 @@ public class OrderController {
 
         return ResponseEntity.ok(ApiResponse.success("Order details retrieved", order));
     }
+
 }

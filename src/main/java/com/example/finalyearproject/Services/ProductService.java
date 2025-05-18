@@ -15,9 +15,9 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -176,7 +176,7 @@ public class ProductService {
             }
 
             // Find the product
-            Optional<Product> productOpt = productRepo.findByFarmer_FarmerIdAndProductId(productId, byFarmerEmail.getFarmerId());
+            Optional<Product> productOpt = productRepo.findByFarmer_FarmerIdAndProductId(byFarmerEmail.getFarmerId(),productId);
             if (productOpt.isEmpty()) {
                 return ApiResponse.error("Deletion failed", "Product not found with ID " + productId +
                         " for farmer " + byFarmerEmail.getFarmerName());
@@ -408,12 +408,21 @@ public class ProductService {
                 );
             }
 
-            // Fetch the actual products in the order of the IDs
-            List<Product> products = productRepo.findByProductIdsInOrderNative(pageProductIds);
+            // Fetch the products (without trying to sort in SQL)
+            List<Product> products = productRepo.findByProductIdsIn(pageProductIds);
+
+            // Sort the products in Java based on the pageProductIds order
+            Map<Integer, Product> productMap = products.stream()
+                    .collect(Collectors.toMap(Product::getProductId, Function.identity()));
+
+            List<Product> orderedProducts = pageProductIds.stream()
+                    .map(productMap::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
             // Create a Page object
             Page<Product> productPage = new PageImpl<>(
-                    products,
+                    orderedProducts,
                     pageable,
                     sessionManager.getShuffledProductIds().size()
             );

@@ -1,5 +1,6 @@
 package com.example.finalyearproject.Utility;
 
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.SessionScope;
 
@@ -7,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Getter
 @Component
 @SessionScope
 public class ProductSessionManager {
@@ -16,10 +18,6 @@ public class ProductSessionManager {
         List<Integer> shuffledIds = new ArrayList<>(productIds);
         Collections.shuffle(shuffledIds);
         this.shuffledProductIds = shuffledIds;
-    }
-
-    public List<Integer> getShuffledProductIds() {
-        return shuffledProductIds;
     }
 
     public boolean hasShuffledIds() {

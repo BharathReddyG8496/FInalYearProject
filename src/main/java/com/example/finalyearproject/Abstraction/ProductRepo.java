@@ -33,9 +33,12 @@ public interface ProductRepo extends JpaRepository<Product, Integer>, JpaSpecifi
     @Query("delete Product where productId=:#{#productId} and farmer.farmerId=:#{#farmerId}")
     void deleteByProductId(int productId, int farmerId);
 
+    @Query(value = "SELECT * FROM product WHERE product_id IN (:ids)", nativeQuery = true)
+    List<Product> findByProductIdsIn(@Param("ids") List<Integer> ids);
+
     List<Product> findByCategory(CategoryType category);
 
-    Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
+//    Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
 
     List<Product> findByFarmer_FarmerId(int farmerId);
 
@@ -59,4 +62,5 @@ public interface ProductRepo extends JpaRepository<Product, Integer>, JpaSpecifi
     @Query(value = "SELECT * FROM product WHERE product_id IN ?1 ORDER BY FIELD(product_id, ?1)", nativeQuery = true)
     List<Product> findByProductIdsInOrderNative(List<Integer> ids);
 
+    Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
 }

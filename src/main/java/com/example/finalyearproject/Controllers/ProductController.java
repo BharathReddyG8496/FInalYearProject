@@ -152,7 +152,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/public/products/random")
+    @GetMapping("/products/random")
     public ResponseEntity<ApiResponse<Page<Product>>> getRandomProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -164,7 +164,7 @@ public class ProductController {
     /**
      * Get random products for home page (consumer only) with pagination
      */
-    @GetMapping("/consumer/products/random")
+    @GetMapping("/products")
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Page<Product>>> getRandomProductsForConsumer(
             @RequestParam(defaultValue = "0") int page,

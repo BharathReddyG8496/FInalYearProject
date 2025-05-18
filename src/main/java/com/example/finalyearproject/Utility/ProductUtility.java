@@ -2,15 +2,18 @@ package com.example.finalyearproject.Utility;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.Date;
 
 @Data
 @Builder
+@NoArgsConstructor  // Add this
+@AllArgsConstructor
 public class ProductUtility {
 
     @NotNull
@@ -37,5 +40,6 @@ public class ProductUtility {
     private boolean isOrganic;
 
     // Exclude images from being mapped to your domain entity directly
+    @NotNull
     private MultipartFile[] images;
 }

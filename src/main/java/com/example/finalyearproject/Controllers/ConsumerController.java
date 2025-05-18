@@ -53,7 +53,6 @@ public class ConsumerController {
         }
     }
 
-
     @GetMapping("products/category/{category}")
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<List<Product>>> getProductsByCategory(@PathVariable String category) {
@@ -77,54 +76,6 @@ public class ConsumerController {
             categories.add(value.toString());
         }
         return ResponseEntity.ok(ApiResponse.success("categories fetched successfully",categories));
-    }
-
-    /**
-     * Get consumer's order history
-     */
-    @GetMapping("/orders")
-    @PreAuthorize("hasAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<List<Order>>> getMyOrders(Authentication authentication) {
-        String consumerEmail = authentication.getName();
-
-        // Find consumer by email
-        Consumer consumer = consumerService.findByEmail(consumerEmail);
-        if (consumer == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Consumer not found", "Authentication failed"));
-        }
-
-        // Get orders for this consumer
-        List<Order> orders = orderService.getOrderHistory(consumer.getConsumerId());
-        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
-    }
-
-    /**
-     * Get specific order details
-     */
-    @GetMapping("/orders/{orderId}")
-    @PreAuthorize("hasAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<Order>> getMyOrderDetails(
-            @PathVariable int orderId,
-            Authentication authentication) {
-
-        String consumerEmail = authentication.getName();
-
-        // Find consumer
-        Consumer consumer = consumerService.findByEmail(consumerEmail);
-        if (consumer == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Consumer not found", "Authentication failed"));
-        }
-
-        // Get order and verify ownership
-        Order order = orderService.getOrderById(orderId);
-        if (order == null || order.getConsumer().getConsumerId() != consumer.getConsumerId()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Order not found", "No such order found"));
-        }
-
-        return ResponseEntity.ok(ApiResponse.success("Order details retrieved", order));
     }
 
     @PutMapping("/orders/{orderId}/confirm")

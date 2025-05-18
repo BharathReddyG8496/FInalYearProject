@@ -1,14 +1,12 @@
 package com.example.finalyearproject.Utility;
 
 import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class FarmerRegisterDTO {
 
     @NotBlank(message = "Email cannot be blank")

@@ -13,6 +13,7 @@ import com.example.finalyearproject.Utility.FarmerRegisterDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -44,7 +45,7 @@ public class PublicController {
     @Autowired
     private FarmerService farmerService;
 
-    @PostMapping(path = "/register-consumer")
+    @PostMapping(path = "/register-consumer", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Consumer>> RegisterConsumer(@Valid @ModelAttribute ConsumerRegisterDTO consumerRegisterDTO) {
         ApiResponse<Consumer> response = consumerService.RegisterConsumer(consumerRegisterDTO);
 
@@ -96,7 +97,7 @@ public class PublicController {
         }
     }
 
-    @PostMapping("/register-farmer")
+    @PostMapping(path = "/register-farmer",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Farmer>> RegisterFarmer(@Valid @ModelAttribute FarmerRegisterDTO farmerRegisterDTO) {
         ApiResponse<Farmer> response = farmerService.RegisterFarmer(farmerRegisterDTO);
 

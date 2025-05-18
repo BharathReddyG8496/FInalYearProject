@@ -1,14 +1,12 @@
 package com.example.finalyearproject.Utility;
 
 import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Getter
-@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Data
 public class ConsumerRegisterDTO {
 
     @NotBlank(message = "First Name cannot be blank")

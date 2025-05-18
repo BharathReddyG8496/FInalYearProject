@@ -11,10 +11,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FarmerUtility {
-
     private String firstName;
     private String lastName;
     private String farmerPhone;
     private String farmerAddress;
-
 }
