@@ -67,6 +67,7 @@ public class Product {
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     @JsonManagedReference("order-product")
+    @JsonIgnore
     private Set<OrderItem> orderItems;
 
     // One product can have multiple images.

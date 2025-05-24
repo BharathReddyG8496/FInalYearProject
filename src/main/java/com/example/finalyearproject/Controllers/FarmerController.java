@@ -1,14 +1,12 @@
 package com.example.finalyearproject.Controllers;
 
 import com.example.finalyearproject.DataStore.*;
+import com.example.finalyearproject.Mappers.OrderMapper;
 import com.example.finalyearproject.Services.FarmerService;
 import com.example.finalyearproject.Services.OrderService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Services.RatingServices;
-import com.example.finalyearproject.Utility.ApiResponse;
-import com.example.finalyearproject.Utility.FarmerUpdateDTO;
-import com.example.finalyearproject.Utility.FarmerUtility;
-import com.example.finalyearproject.Utility.ProductResponseUtility;
+import com.example.finalyearproject.Utility.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,7 +36,14 @@ public class FarmerController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private OrderMapper orderMapper;
 
+    /*
+     * =======================================
+     * FARMER PROFILE ENDPOINTS
+     * =======================================
+     */
 
     @PutMapping("/update-profile")
     @PreAuthorize("hasAuthority('FARMER')")
@@ -56,15 +61,12 @@ public class FarmerController {
         }
     }
 
-//    @GetMapping("/my-products")
-//    @PreAuthorize("hasAuthority('FARMER')")
-//    public ResponseEntity<ApiResponse<List<Product>>> getMyProducts(Authentication authentication) {
-//        String farmerEmail = authentication.getName();
-//        ApiResponse<List<Product>> response = productService.getProductsByFarmerEmail(farmerEmail);
-//        return ResponseEntity.ok(response);
-//    }
+    /*
+     * =======================================
+     * FARMER PRODUCT ENDPOINTS
+     * =======================================
+     */
 
-    // Alternative formatted response if you prefer ProductResponseUtility
     @GetMapping("/products")
     @PreAuthorize("hasAuthority('FARMER')")
     public ResponseEntity<ApiResponse<Set<ProductResponseUtility>>> GetAllProductsFormatted() {
@@ -84,7 +86,7 @@ public class FarmerController {
                             .harvestDate(product.getHarvestDate())
                             .availableDate(product.getAvailableFromDate())
                             .imageUrls(product.getImages().stream()
-                                    .map(ProductImage::getFilePath) // No need to hardcode localhost
+                                    .map(ProductImage::getFilePath)
                                     .collect(Collectors.toList()))
                             .build())
                     .collect(Collectors.toSet());
@@ -103,18 +105,13 @@ public class FarmerController {
             Authentication authentication) {
 
         String farmerEmail = authentication.getName();
-
         ApiResponse<Product> productByIdAndFarmerEmail = productService.getProductByIdAndFarmerEmail(productId, farmerEmail);
 
         if (productByIdAndFarmerEmail.getData() != null) {
             return ResponseEntity.ok(productByIdAndFarmerEmail);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(productByIdAndFarmerEmail);
-
     }
-    /**
-     * Delete a product (farmer only)
-     */
 
     @GetMapping("/ratings/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")
@@ -136,45 +133,41 @@ public class FarmerController {
         }
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<String>> exceptionHandler() {
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Authentication failed", "Invalid credentials"));
-    }
-
-    /**
-     * Mark order as delivered (fix the path)
+    /*
+     * =======================================
+     * FARMER ORDER ENDPOINTS
+     * =======================================
      */
-    @PutMapping("/orders/{orderId}/deliver") // Remove redundant "farmer" from path
-    @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<Order>> markOrderDelivered(
-            @PathVariable int orderId,
-            Authentication authentication) {
-
-        String farmerEmail = authentication.getName();
-        ApiResponse<Order> response = orderService.markOrderDelivered(orderId, farmerEmail);
-
-        return ResponseEntity.ok(response);
-    }
 
     /**
      * Get all orders containing products from this farmer
+     * FILTERED: Returns only this farmer's items
      */
     @GetMapping("/orders")
     @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<List<Order>>> getFarmerOrders(Authentication authentication) {
+    public ResponseEntity<ApiResponse<List<OrderSummaryDTO>>> getFarmerOrders(Authentication authentication) {
         String farmerEmail = authentication.getName();
-        ApiResponse<List<Order>> response = orderService.getFarmerOrders(farmerEmail);
-        return ResponseEntity.ok(response);
+        ApiResponse<List<Order>> response = orderService.getFarmerFilteredOrders(farmerEmail);
+
+        if (response.isSuccess()) {
+            List<OrderSummaryDTO> orderSummaries = response.getData().stream()
+                    .map(orderMapper::toOrderSummaryDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), orderSummaries));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
     }
 
     /**
-     * Get specific order details (if it contains farmer's products)
+     * Get specific order details (only this farmer's items)
+     * FILTERED: Returns only this farmer's items
      */
     @GetMapping("/orders/{orderId}")
     @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<Order>> getFarmerOrderDetails(
+    public ResponseEntity<ApiResponse<OrderResponseDTO>> getFarmerOrderDetails(
             @PathVariable int orderId,
             Authentication authentication) {
 
@@ -182,9 +175,117 @@ public class FarmerController {
         ApiResponse<Order> response = orderService.getFarmerOrderDetails(orderId, farmerEmail);
 
         if (response.getData() != null) {
-            return ResponseEntity.ok(response);
+            OrderResponseDTO orderDTO = orderMapper.toOrderResponseDTO(response.getData());
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), orderDTO));
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
         }
+    }
+
+    /**
+     * Get orders by item status
+     * FILTERED: Returns only this farmer's items
+     */
+    @GetMapping("/orders/by-status/{status}")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<OrderSummaryDTO>>> getFarmerOrdersByItemStatus(
+            @PathVariable FulfillmentStatus status,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<List<Order>> response = orderService.getFarmerOrdersByItemStatus(farmerEmail, status);
+
+        if (response.isSuccess()) {
+            List<OrderSummaryDTO> orderSummaries = response.getData().stream()
+                    .map(orderMapper::toOrderSummaryDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), orderSummaries));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+
+    /**
+     * Get all items sold by this farmer across all orders
+     */
+    @GetMapping("/order-items")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<OrderItemResponseDTO>>> getAllFarmerItems(Authentication authentication) {
+        String farmerEmail = authentication.getName();
+        ApiResponse<List<OrderItem>> response = orderService.getAllFarmerItems(farmerEmail);
+
+        if (response.isSuccess()) {
+            List<OrderItemResponseDTO> itemDTOs = response.getData().stream()
+                    .map(orderMapper::toOrderItemResponseDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), itemDTOs));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+
+    /**
+     * Mark farmer's items as delivered
+     */
+    @PutMapping("/orders/{orderId}/items/deliver")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<OrderItemResponseDTO>>> markItemsDelivered(
+            @PathVariable int orderId,
+            @RequestBody(required = false) DeliveryNotesDTO notesDTO,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        String deliveryNotes = notesDTO != null ? notesDTO.getDeliveryNotes() : null;
+
+        ApiResponse<List<OrderItem>> response = orderService.markFarmerItemsDelivered(
+                orderId, farmerEmail, deliveryNotes);
+
+        if (response.isSuccess()) {
+            List<OrderItemResponseDTO> itemDTOs = response.getData().stream()
+                    .map(orderMapper::toOrderItemResponseDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), itemDTOs));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+    /**
+     * Farmer cancels their own items
+     */
+    @PutMapping("/orders/{orderId}/items/cancel")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<OrderItemResponseDTO>>> cancelItems(
+            @PathVariable int orderId,
+            @RequestBody OrderItemStatusUpdateDTO updateDTO,
+            Authentication authentication) {
+
+        String farmerEmail = authentication.getName();
+        ApiResponse<List<OrderItem>> response = orderService.cancelOrderItems(
+                orderId, updateDTO.getOrderItemIds(), farmerEmail, "FARMER", updateDTO.getNotes());
+
+        if (response.isSuccess()) {
+            List<OrderItemResponseDTO> itemDTOs = response.getData().stream()
+                    .map(orderMapper::toOrderItemResponseDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), itemDTOs));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<String>> exceptionHandler() {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Authentication failed", "Invalid credentials"));
     }
 }

@@ -371,7 +371,6 @@ public class ProductService {
                             Sort.by(Sort.Direction.DESC, "productId");
                 };
             }
-
             // Create pageable with sort and pagination
             Pageable pageable = PageRequest.of(
                     filterDTO.getPage(),

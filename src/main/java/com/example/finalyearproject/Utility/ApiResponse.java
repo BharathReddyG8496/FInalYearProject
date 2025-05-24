@@ -3,7 +3,6 @@ package com.example.finalyearproject.Utility;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 @Data
@@ -33,5 +32,9 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(String message, String error) {
         return new ApiResponse<>(message, null, List.of(error));
     }
-}
 
+    // NEW: Check if response was successful
+    public boolean isSuccess() {
+        return errors == null || errors.isEmpty();
+    }
+}

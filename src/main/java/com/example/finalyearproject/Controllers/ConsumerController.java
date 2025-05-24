@@ -1,6 +1,5 @@
 package com.example.finalyearproject.Controllers;
 
-
 import com.example.finalyearproject.DataStore.*;
 import com.example.finalyearproject.Services.ConsumerService;
 import com.example.finalyearproject.Services.OrderService;
@@ -29,14 +28,10 @@ public class ConsumerController {
     private ProductService productService;
 
     @Autowired
-    private OrderService orderService;
-
-    @Autowired
-    private ConsumerService consumerService;
-
-    @Autowired
     private RatingServices ratingServices;
 
+
+    // Existing product-related methods remain unchanged
     @GetMapping("/products/all")
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<List<Product>>> getAllProducts() {
@@ -70,9 +65,7 @@ public class ConsumerController {
             @RequestParam(name = "size", defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-
         ApiResponse<Page<Product>> response = productService.getRandomProductsPaginated(pageable);
-
         return ResponseEntity.ok(response);
     }
 
@@ -82,7 +75,6 @@ public class ConsumerController {
         ApiResponse<List<Product>> response = productService.searchProductsByName(query);
         return ResponseEntity.ok(response);
     }
-
 
     @GetMapping("/getCategories")
     @PreAuthorize("hasAuthority('CONSUMER')")
@@ -94,18 +86,8 @@ public class ConsumerController {
         return ResponseEntity.ok(ApiResponse.success("categories fetched successfully",categories));
     }
 
-    @PutMapping("/orders/{orderId}/confirm")
-    @PreAuthorize("hasAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<Order>> confirmOrderReceipt(
-            @PathVariable int orderId,
-            Authentication authentication) {
 
-        String consumerEmail = authentication.getName();
-        ApiResponse<Order> response = orderService.confirmOrderReceipt(orderId, consumerEmail);
-
-        return ResponseEntity.ok(response);
-    }
-
+    // Existing rating-related methods remain unchanged
     @GetMapping("/my-ratings")
     @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Set<Rating>>> getMyRatings(Authentication authentication) {
@@ -117,5 +99,4 @@ public class ConsumerController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
-
 }

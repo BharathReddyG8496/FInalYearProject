@@ -185,6 +185,43 @@ public class CartService {
             return ApiResponse.error("Failed to remove from cart", e.getMessage());
         }
     }
+    /**
+     * Delete entire item from cart regardless of quantity
+     */
+    @Transactional
+    public ApiResponse<Set<OrderItem>> deleteCartItem(int consumerId, int orderItemId) {
+        try {
+            // Find order item in active cart
+            OrderItem orderItem = orderItemRepo.findOrderItemWithStatusCREATED(consumerId, orderItemId);
+            if (orderItem == null) {
+                return ApiResponse.error("Item not found", "No item found in your active cart");
+            }
+
+            Order cart = orderItem.getOrder();
+
+            // Remove the entire item
+            cart.getOrderItems().remove(orderItem);
+
+            // Remove from product's orderItems collection if needed
+            if (orderItem.getProduct() != null && orderItem.getProduct().getOrderItems() != null) {
+                orderItem.getProduct().getOrderItems().remove(orderItem);
+            }
+
+            // Delete from database
+            orderItemRepo.delete(orderItem);
+
+            // Recalculate cart total
+            cart.setTotalAmount(cart.getOrderItems().stream()
+                    .mapToDouble(OrderItem::getUnitPrice)
+                    .sum());
+            orderRepo.save(cart);
+
+            return ApiResponse.success("Item removed from cart", cart.getOrderItems());
+        } catch (Exception e) {
+            logger.error("Failed to delete cart item: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to delete cart item", e.getMessage());
+        }
+    }
 
     /**
      * Get cart

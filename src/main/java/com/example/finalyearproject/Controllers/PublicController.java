@@ -46,7 +46,8 @@ public class PublicController {
     private FarmerService farmerService;
 
     @PostMapping(path = "/register-consumer", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<Consumer>> RegisterConsumer(@Valid @ModelAttribute ConsumerRegisterDTO consumerRegisterDTO) {
+    public ResponseEntity<ApiResponse<Consumer>> RegisterConsumer(
+            @Valid @ModelAttribute ConsumerRegisterDTO consumerRegisterDTO) {
         ApiResponse<Consumer> response = consumerService.RegisterConsumer(consumerRegisterDTO);
 
         if (response.getData() != null) {
@@ -89,7 +90,8 @@ public class PublicController {
 
 
     private void doAuthenticate(String userName, String password) {
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userName, password);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userName, password);
         try {
             manager.authenticate(authentication);
         } catch (BadCredentialsException e) {
@@ -98,7 +100,8 @@ public class PublicController {
     }
 
     @PostMapping(path = "/register-farmer",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<Farmer>> RegisterFarmer(@Valid @ModelAttribute FarmerRegisterDTO farmerRegisterDTO) {
+    public ResponseEntity<ApiResponse<Farmer>> RegisterFarmer(
+            @Valid @ModelAttribute FarmerRegisterDTO farmerRegisterDTO) {
         ApiResponse<Farmer> response = farmerService.RegisterFarmer(farmerRegisterDTO);
 
         if (response.getData() != null) {

@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -104,7 +103,6 @@ public class FarmerService {
             if (updateDTO.getFarmerAddress() != null && !updateDTO.getFarmerAddress().isEmpty()) {
                 existingFarmer.setFarmerAddress(updateDTO.getFarmerAddress());
             }
-
             // Only update password if provided
 //            if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
 //                existingFarmer.setFarmerPassword(passwordEncoder.encode(updateDTO.getPassword()));

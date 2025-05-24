@@ -20,7 +20,7 @@ public class OrderPlacementDTO {
     @Size(max = 100, message = "State cannot exceed 100 characters")
     private String shippingState;
 
-    @NotBlank(message = "ZIP code is required")
-    @Pattern(regexp = "^\\d{5}(-\\d{4})?$", message = "Invalid ZIP code format")
+    @NotBlank(message = "Pincode is required")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Invalid pincode format (must be a 6-digit number)")
     private String shippingZip;
 }
