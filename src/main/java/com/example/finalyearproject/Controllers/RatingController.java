@@ -100,6 +100,7 @@ public class RatingController {
      * Get all ratings for a specific product
      */
     @GetMapping("/products/{productId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
     public ResponseEntity<ApiResponse<Set<Rating>>> getProductRatings(@PathVariable int productId) {
         ApiResponse<Set<Rating>> response = ratingServices.getProductRatings(productId);
 

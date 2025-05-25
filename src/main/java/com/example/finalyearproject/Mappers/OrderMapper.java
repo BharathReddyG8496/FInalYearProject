@@ -5,6 +5,7 @@ import com.example.finalyearproject.DataStore.FulfillmentStatus;
 import com.example.finalyearproject.DataStore.Order;
 import com.example.finalyearproject.DataStore.OrderItem;
 import com.example.finalyearproject.Utility.OrderItemResponseDTO;
+import com.example.finalyearproject.Utility.OrderItemSummaryDTO;
 import com.example.finalyearproject.Utility.OrderResponseDTO;
 import com.example.finalyearproject.Utility.OrderSummaryDTO;
 import org.springframework.stereotype.Component;
@@ -58,18 +59,37 @@ public class OrderMapper {
         dto.setShippingState(order.getShippingState());
         dto.setShippingZip(order.getShippingZip());
 
-        // Count items by status
+        // Count items by status (keep this for backward compatibility)
         Map<String, Integer> itemCounts = new HashMap<>();
         for (OrderItem item : order.getOrderItems()) {
             String status = item.getFulfillmentStatus().toString();
             itemCounts.put(status, itemCounts.getOrDefault(status, 0) + 1);
         }
-
         dto.setItemCounts(itemCounts);
+
+        // Add the list of order item summaries
+        List<OrderItemSummaryDTO> itemSummaries = order.getOrderItems().stream()
+                .map(item -> {
+                    OrderItemSummaryDTO itemDto = new OrderItemSummaryDTO();
+                    itemDto.setOrderItemId(item.getOrderItemId());
+                    itemDto.setProductId(item.getProduct() != null ? item.getProduct().getProductId() : 0);
+                    itemDto.setProductName(item.getProductName());
+                    // Get first image if available
+                    if (item.getProduct() != null && item.getProduct().getImages() != null &&
+                            !item.getProduct().getImages().isEmpty()) {
+                        itemDto.setProductImage(item.getProduct().getImages().iterator().next().getFilePath());
+                    }
+                    itemDto.setStatus(item.getFulfillmentStatus());
+                    itemDto.setTotalPrice(item.getUnitPrice());
+                    itemDto.setQuantity(item.getQuantity());
+                    return itemDto;
+                })
+                .collect(Collectors.toList());
+
+        dto.setItems(itemSummaries);
 
         return dto;
     }
-
     public OrderItemResponseDTO toOrderItemResponseDTO(OrderItem item) {
         if (item == null) {
             return null;

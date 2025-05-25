@@ -110,6 +110,27 @@ public class OrderController {
     }
 
     /**
+     * Get specific order item details
+     */
+    @GetMapping("/items/{orderItemId}")
+    @PreAuthorize("hasAuthority('CONSUMER')")
+    public ResponseEntity<ApiResponse<OrderItemResponseDTO>> getOrderItemDetails(
+            @PathVariable int orderItemId,
+            Authentication authentication) {
+
+        String consumerEmail = authentication.getName();
+        ApiResponse<OrderItem> response = orderService.getOrderItemDetails(orderItemId, consumerEmail);
+
+        if (response.isSuccess()) {
+            OrderItemResponseDTO itemDTO = orderMapper.toOrderItemResponseDTO(response.getData());
+            return ResponseEntity.ok(ApiResponse.success(response.getMessage(), itemDTO));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+
+    /**
      * Confirm receipt of specific items
      */
     @PutMapping("/{orderId}/items/confirm")

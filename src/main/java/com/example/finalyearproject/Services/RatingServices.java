@@ -69,7 +69,7 @@ public class RatingServices {
     }
 
     @Transactional
-    public ApiResponse<Rating> addRating(Rating rating, String consumerEmail, int productId, int orderItemId) {
+    public ApiResponse<Rating>addRating(Rating rating, String consumerEmail, int productId, int orderItemId) {
         try {
             // Get consumer
             Consumer consumer = consumerRepo.findByConsumerEmail(consumerEmail);

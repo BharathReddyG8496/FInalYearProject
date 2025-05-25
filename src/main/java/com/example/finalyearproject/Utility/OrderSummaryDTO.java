@@ -4,6 +4,7 @@ import com.example.finalyearproject.DataStore.OrderStatus;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -20,4 +21,7 @@ public class OrderSummaryDTO {
 
     // Summary counts of items by status
     private Map<String, Integer> itemCounts; // e.g., {"PENDING": 2, "DELIVERED": 1}
+
+    // Add this new field
+    private List<OrderItemSummaryDTO> items;
 }

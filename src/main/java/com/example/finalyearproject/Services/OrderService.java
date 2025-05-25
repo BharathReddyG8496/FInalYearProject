@@ -393,6 +393,32 @@ public class OrderService {
     }
 
     /**
+     * Get details for a specific order item
+     * Verifies ownership (consumer can only access their own items)
+     */
+    public ApiResponse<OrderItem> getOrderItemDetails(int orderItemId, String consumerEmail) {
+        try {
+            // Find the order item
+            Optional<OrderItem> itemOpt = orderItemRepo.findById(orderItemId);
+            if (itemOpt.isEmpty()) {
+                return ApiResponse.error("Item not found", "No order item found with ID: " + orderItemId);
+            }
+
+            OrderItem item = itemOpt.get();
+
+            // Verify the item belongs to this consumer
+            if (!item.getOrder().getConsumer().getConsumerEmail().equalsIgnoreCase(consumerEmail)) {
+                return ApiResponse.error("Access denied", "You don't have permission to view this order item");
+            }
+
+            return ApiResponse.success("Order item details retrieved", item);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve order item details: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve order item details", e.getMessage());
+        }
+    }
+
+    /**
      * Cancel entire order
      */
     @Transactional
