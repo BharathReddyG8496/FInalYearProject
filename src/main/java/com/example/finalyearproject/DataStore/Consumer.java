@@ -1,6 +1,7 @@
 package com.example.finalyearproject.DataStore;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -31,6 +32,7 @@ public class Consumer implements UserDetails {
     private String consumerLastName;
 
     @NotBlank(message = "Password cannot be blank")
+    @JsonIgnore
     private String consumerPassword;
 
     @NotBlank(message = "Email cannot be blank")
@@ -52,31 +54,39 @@ public class Consumer implements UserDetails {
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("consumer-ratings")
+    @JsonIgnore
     private Set<Rating> consumerRatings;
 
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("consumer-donations")
+    @JsonIgnore
     private Set<Donation> consumerDonations;
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL)
     @JsonManagedReference("consumer-order")
+    @JsonIgnore
     private Set<Order> consumerOrder;
 
     @OneToMany(mappedBy = "consumer",cascade = CascadeType.ALL)
     @JsonManagedReference("consumer-addresses")
+    @JsonIgnore
     private Set<DeliveryAddresses> setOfDeliveryAddress;
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // Return CONSUMER authority
         return Collections.singletonList(new SimpleGrantedAuthority("CONSUMER"));
     }
 
     @Override
+    @JsonIgnore
     public String getPassword() {
         return this.consumerPassword;
     }
+
+    @JsonIgnore
     public String getFarmerName() {
         // If firstName or lastName is null, avoid NullPointerException
         if(consumerFirstName == null || consumerLastName == null) {
@@ -86,26 +96,31 @@ public class Consumer implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public String getUsername() {
         return getFarmerName();
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
         return true;
     }

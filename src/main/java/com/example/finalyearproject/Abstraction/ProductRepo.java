@@ -63,4 +63,10 @@ public interface ProductRepo extends JpaRepository<Product, Integer>, JpaSpecifi
     List<Product> findByProductIdsInOrderNative(List<Integer> ids);
 
     Optional<Product> findByFarmer_FarmerIdAndProductId(int farmerId, int productId);
+
+    // Count products by farmer ID
+    long countByFarmer_FarmerId(int farmerId);
+
+    // Count products by farmer ID with stock less than threshold
+    long countByFarmer_FarmerIdAndStockLessThan(int farmerId, int stockThreshold);
 }

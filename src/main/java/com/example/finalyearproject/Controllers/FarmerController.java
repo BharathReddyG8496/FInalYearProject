@@ -16,7 +16,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,7 +47,23 @@ public class FarmerController {
      * FARMER PROFILE ENDPOINTS
      * =======================================
      */
+    /**
+     * Get farmer profile
+     */
+    @GetMapping("/profile")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Farmer>> getProfile(Authentication authentication) {
+        String email = authentication.getName();
+        ApiResponse<Farmer> response = farmerService.getFarmerByEmail(email);
 
+        return response.isSuccess()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    /**
+     * Update farmer profile - keep your existing endpoint
+     */
     @PutMapping("/update-profile")
     @PreAuthorize("hasAuthority('FARMER')")
     public ResponseEntity<ApiResponse<FarmerUtility>> updateFarmer(
@@ -60,6 +79,40 @@ public class FarmerController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+
+    /**
+     * Update profile photo
+     */
+    @PostMapping("/profile/photo")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<String>> updateProfilePhoto(
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        ApiResponse<String> response = farmerService.updateProfilePhoto(file, email);
+
+        return response.isSuccess()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Get farmer's performance statistics
+     */
+    @GetMapping("/profile/stats")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getFarmerStats(
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        ApiResponse<Map<String, Object>> response = farmerService.getFarmerStats(email);
+
+        return response.isSuccess()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
 
     /*
      * =======================================

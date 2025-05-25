@@ -7,6 +7,7 @@ import com.example.finalyearproject.DataStore.Consumer;
 import com.example.finalyearproject.DataStore.DeliveryAddresses;
 import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.Utility.ConsumerRegisterDTO;
+import com.example.finalyearproject.Utility.ConsumerUpdateDTO;
 import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
@@ -108,7 +109,22 @@ public class ConsumerService {
         }
     }
 
+    /**
+     * Original two-parameter method for backward compatibility
+     */
     public String uploadConsumerProfilePhoto(MultipartFile file, String email) throws IOException {
+        // Call the new three-parameter version with null for existingPublicId
+        return uploadConsumerProfilePhoto(file, email, null);
+    }
+
+    /**
+     * Upload consumer profile photo to Cloudinary
+     * @param file The image file to upload
+     * @param email Consumer's email (used for folder structure)
+     * @param existingPublicId Optional existing public_id to overwrite
+     * @return The URL of the uploaded image
+     */
+    public String uploadConsumerProfilePhoto(MultipartFile file, String email, String existingPublicId) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Profile photo is empty or missing");
         }
@@ -132,7 +148,20 @@ public class ConsumerService {
             // Prepare upload parameters
             Map<String, Object> params = new HashMap<>();
             params.put("folder", folderPath);
-            params.put("public_id", UUID.randomUUID().toString());
+
+            // Use existing public_id if available, otherwise generate new one
+            if (existingPublicId != null && !existingPublicId.isEmpty()) {
+                // If we have a full path including folder, extract just the filename part
+                if (existingPublicId.contains("/")) {
+                    existingPublicId = existingPublicId.substring(existingPublicId.lastIndexOf('/') + 1);
+                }
+                params.put("public_id", existingPublicId);
+                logger.info("Overwriting existing image with public_id: {}", existingPublicId);
+            } else {
+                params.put("public_id", UUID.randomUUID().toString());
+                logger.info("Creating new image with generated public_id");
+            }
+
             params.put("overwrite", true);
             params.put("resource_type", "auto");
 
@@ -166,27 +195,46 @@ public class ConsumerService {
                 return ApiResponse.error("Update failed", "Consumer not found with email: " + email);
             }
 
-            // If consumer has an existing photo and it's a Cloudinary URL, try to delete it
+            // Validate file
+            if (file == null || file.isEmpty()) {
+                return ApiResponse.error("Update failed", "Profile photo is empty or missing");
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ApiResponse.error("Update failed", "Uploaded file is not an image");
+            }
+
+            long maxSizeBytes = 5 * 1024 * 1024; // 5MB
+            if (file.getSize() > maxSizeBytes) {
+                return ApiResponse.error("Update failed", "Image size exceeds maximum allowed (5MB)");
+            }
+
+            // Extract existing public_id if possible
+            String publicId = null;
             String existingPhotoPath = consumer.getProfilePhotoPath();
             if (existingPhotoPath != null && existingPhotoPath.contains("cloudinary.com")) {
                 try {
-                    // Extract public_id from URL - this may need adjustment based on your URL format
-                    String publicId = existingPhotoPath.substring(
-                            existingPhotoPath.lastIndexOf("/") + 1,
-                            existingPhotoPath.lastIndexOf(".")
-                    );
-                    // Delete from Cloudinary
-                    Map<String, String> params = new HashMap<>();
-                    params.put("resource_type", "image");
-                    cloudinary.uploader().destroy(publicId, params);
+                    // Extract public_id from URL
+                    // Format: https://res.cloudinary.com/cloud-name/image/upload/v1234567890/folder/public_id.ext
+                    String[] parts = existingPhotoPath.split("/upload/");
+                    if (parts.length > 1) {
+                        String afterUpload = parts[1];
+                        // Remove version number if present (v1234567890/)
+                        if (afterUpload.startsWith("v")) {
+                            afterUpload = afterUpload.substring(afterUpload.indexOf('/') + 1);
+                        }
+                        // Remove file extension
+                        publicId = afterUpload.substring(0, afterUpload.lastIndexOf('.'));
+                    }
                 } catch (Exception e) {
-                    logger.warn("Failed to delete existing profile photo: {}", e.getMessage());
-                    // Continue with the upload even if deletion fails
+                    logger.warn("Could not extract public_id from existing photo URL: {}", existingPhotoPath);
+                    // If extraction fails, we'll generate a new ID
                 }
             }
 
-            // Upload new photo
-            String newPhotoUrl = uploadConsumerProfilePhoto(file, email);
+            // Upload new photo (will overwrite if publicId was successfully extracted)
+            String newPhotoUrl = uploadConsumerProfilePhoto(file, email, publicId);
 
             // Update consumer record
             consumer.setProfilePhotoPath(newPhotoUrl);
@@ -206,27 +254,34 @@ public class ConsumerService {
     }
 
     @Transactional
-    public ApiResponse<Consumer> UpdateConsumer(Consumer consumer) {
+    public ApiResponse<Consumer> updateConsumer(ConsumerUpdateDTO updateDTO, String email) {
         try {
-            if (consumer == null || consumer.getConsumerId() == 0) {
-                return ApiResponse.error("Update failed", "Invalid consumer data");
-            }
-
-            Consumer existingConsumer = consumerRepo.findConsumerByConsumerId(consumer.getConsumerId());
+            Consumer existingConsumer = consumerRepo.findByConsumerEmail(email);
             if (existingConsumer == null) {
-                return ApiResponse.error("Update failed", "Consumer not found with ID: " + consumer.getConsumerId());
+                return ApiResponse.error("Update failed", "Consumer not found with email: " + email);
             }
 
-            // Update only the allowed fields, preserving sensitive information
-            existingConsumer.setConsumerFirstName(consumer.getConsumerFirstName());
-            existingConsumer.setConsumerLastName(consumer.getConsumerLastName());
-            existingConsumer.setConsumerPhone(consumer.getConsumerPhone());
-            existingConsumer.setConsumerAddress(consumer.getConsumerAddress());
-
-            // Only update password if provided and not empty
-            if (consumer.getPassword() != null && !consumer.getPassword().isEmpty()) {
-                existingConsumer.setConsumerPassword(passwordEncoder.encode(consumer.getPassword()));
+            // Update only the fields provided in the DTO
+            if (updateDTO.getConsumerFirstName() != null && !updateDTO.getConsumerFirstName().isEmpty()) {
+                existingConsumer.setConsumerFirstName(updateDTO.getConsumerFirstName());
             }
+
+            if (updateDTO.getConsumerLastName() != null && !updateDTO.getConsumerLastName().isEmpty()) {
+                existingConsumer.setConsumerLastName(updateDTO.getConsumerLastName());
+            }
+
+            if (updateDTO.getConsumerPhone() != null && !updateDTO.getConsumerPhone().isEmpty()) {
+                existingConsumer.setConsumerPhone(updateDTO.getConsumerPhone());
+            }
+
+            if (updateDTO.getConsumerAddress() != null && !updateDTO.getConsumerAddress().isEmpty()) {
+                existingConsumer.setConsumerAddress(updateDTO.getConsumerAddress());
+            }
+
+//            // Only update password if provided and not empty
+//            if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
+//                existingConsumer.setConsumerPassword(passwordEncoder.encode(updateDTO.getPassword()));
+//            }
 
             Consumer updatedConsumer = consumerRepo.save(existingConsumer);
             return ApiResponse.success("Consumer updated successfully", updatedConsumer);

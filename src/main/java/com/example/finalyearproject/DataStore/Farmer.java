@@ -58,10 +58,12 @@ public class Farmer implements UserDetails {
 
     @OneToMany(cascade = CascadeType.ALL)
     @JsonManagedReference("farmer-donations")
+    @JsonIgnore
     private Set<Donation> farmerDonations;
 
     @OneToMany(mappedBy = "farmer", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("farmer-product")
+    @JsonIgnore
     private Set<Product> farmerProducts = new HashSet<>();
 
 
@@ -75,15 +77,18 @@ public class Farmer implements UserDetails {
 
     // UserDetails methods implementation
     @Override
+    @JsonIgnore
     public String getPassword() {
         return this.farmerPassword;
     }
 
     @Override
+    @JsonIgnore
     public String getUsername() {
         return getFarmerName();
     }
 
+    @JsonIgnore
     public String getFarmerName() {
         // If firstName or lastName is null, avoid NullPointerException
         if(firstName == null || lastName == null) {
@@ -93,26 +98,31 @@ public class Farmer implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // Return FARMER authority
         return Collections.singletonList(new SimpleGrantedAuthority("FARMER"));

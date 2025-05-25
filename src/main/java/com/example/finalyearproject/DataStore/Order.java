@@ -129,27 +129,35 @@ public class Order {
             return;
         }
 
-        // Check various conditions
-        boolean allConfirmed = orderItems.stream()
-                .allMatch(item -> item.getFulfillmentStatus() == FulfillmentStatus.CONFIRMED);
+        // Get non-cancelled items
+        Set<OrderItem> activeItems = orderItems.stream()
+                .filter(item -> item.getFulfillmentStatus() != FulfillmentStatus.CANCELLED)
+                .collect(Collectors.toSet());
 
-        boolean allDeliveredOrConfirmed = orderItems.stream()
-                .allMatch(item -> item.getFulfillmentStatus() == FulfillmentStatus.DELIVERED ||
-                        item.getFulfillmentStatus() == FulfillmentStatus.CONFIRMED);
+        // If all items are cancelled
+        boolean allCancelled = activeItems.isEmpty();
 
-        boolean allCancelled = orderItems.stream()
-                .allMatch(item -> item.getFulfillmentStatus() == FulfillmentStatus.CANCELLED);
-
-        // Update order status based on item statuses
         if (allCancelled) {
             if (this.orderStatus != OrderStatus.CANCELLED) {
                 this.orderStatus = OrderStatus.CANCELLED;
                 this.cancelledAt = new Date();
                 this.cancellationReason = "All items cancelled";
             }
-        } else if (allConfirmed) {
+            return;
+        }
+
+        // Check status of non-cancelled items only
+        boolean allNonCancelledConfirmed = activeItems.stream()
+                .allMatch(item -> item.getFulfillmentStatus() == FulfillmentStatus.CONFIRMED);
+
+        boolean allNonCancelledDeliveredOrConfirmed = activeItems.stream()
+                .allMatch(item -> item.getFulfillmentStatus() == FulfillmentStatus.DELIVERED ||
+                        item.getFulfillmentStatus() == FulfillmentStatus.CONFIRMED);
+
+        // Update order status based on active items' statuses
+        if (allNonCancelledConfirmed) {
             this.orderStatus = OrderStatus.COMPLETED;
-        } else if (allDeliveredOrConfirmed) {
+        } else if (allNonCancelledDeliveredOrConfirmed) {
             this.orderStatus = OrderStatus.DELIVERED;
         } else if (this.orderStatus == OrderStatus.CREATED) {
             // Don't change PLACED status back to CREATED if some items are delivered
