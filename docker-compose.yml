@@ -4,4 +4,4 @@ services:
     container_name: springboot-app
     restart: always
     ports:
-      - "8001:8001"
+      - "8080:8080"
