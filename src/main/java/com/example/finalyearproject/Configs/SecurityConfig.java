@@ -45,16 +45,24 @@ public class SecurityConfig{
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        // Add these lines to allow WebSocket connections
+                        .requestMatchers("/ws-chat/**").permitAll()  // Allow WebSocket endpoint
+                        .requestMatchers("/ws-chat").permitAll()     // Base endpoint
+                        .requestMatchers("/ws-chat/info").permitAll() // SockJS info endpoint
+                        .requestMatchers("/ws-chat/websocket").permitAll() // SockJS websocket
+
+                        // Your existing configuration follows
                         .requestMatchers("/products/**","/order/**","/checkout/**","/rating/**").authenticated()
                         .requestMatchers("/public/**").permitAll()
-                        .requestMatchers("/test").authenticated().requestMatchers(
-                                        "/v3/api-docs",
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html",
-                                        "/swagger-resources/**",
-                                        "/webjars/**"
-                                ).permitAll()
+                        .requestMatchers("/test").authenticated()
+                        .requestMatchers(
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(point))
@@ -64,7 +72,6 @@ public class SecurityConfig{
 
         return http.build();
     }
-
 
     /*
   To create this Bean it requires Spring-Security dependency.

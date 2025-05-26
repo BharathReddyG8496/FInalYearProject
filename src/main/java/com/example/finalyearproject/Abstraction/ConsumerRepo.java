@@ -14,7 +14,6 @@ import java.util.Optional;
 import java.util.Set;
 
 @Repository
-@EnableJpaRepositories
 public interface ConsumerRepo extends JpaRepository<Consumer, Integer> {
 
     Consumer findConsumerByConsumerId(int id);

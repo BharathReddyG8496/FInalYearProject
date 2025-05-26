@@ -4,11 +4,11 @@ import com.example.finalyearproject.DataStore.Farmer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@EnableJpaRepositories
+@Repository
 public interface FarmerRepo extends JpaRepository<Farmer,Integer> {
      Optional<Farmer> findFarmerByFarmerEmail(String farmerName);
 
