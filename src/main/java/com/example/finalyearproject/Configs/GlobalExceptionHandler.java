@@ -4,10 +4,14 @@ import com.example.finalyearproject.Utility.ApiResponse;
 import com.example.finalyearproject.customExceptions.ResourceNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -120,6 +124,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Resource not found", ex.getMessage()));
     }
 
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponse<Object>> handleJwtException(JwtException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Invalid Token", ex.getMessage()));
+    }
+
+
     // Catch-all exception handler
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleAllOtherExceptions(Exception ex) {
@@ -128,6 +141,30 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("An unexpected error occurred", "Please try again later"));
     }
+    // Handle AccessDeniedException (valid token, but wrong role/authority)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Access Denied", "You are not authorized to perform this action"));
+    }
+
+    // Handle AuthenticationException (invalid token or not logged in)
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Authentication Failed", "You must be authenticated to access this resource"));
+    }
+
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiResponse<Object>> handleExpiredJwtException(ExpiredJwtException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Token Expired", "Your session has expired. Please log in again."));
+    }
+
 
     // Helper method to extract field names from error messages
     private String extractFieldNameFromError(String errorMessage) {
