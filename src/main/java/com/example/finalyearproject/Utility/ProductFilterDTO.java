@@ -1,42 +1,28 @@
 package com.example.finalyearproject.Utility;
 
-import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
-
-import java.util.Date;
+import lombok.*;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProductFilterDTO {
-    // Search text
-    private String query;
+    // Pagination
+    @Builder.Default
+    private int page = 0;
 
-    // Category filter
-    private String category;
+    @Builder.Default
+    private int size = 10;
 
-    // Price range
+    // Filter criteria
     private Double minPrice;
     private Double maxPrice;
-
-    // Quantity/Stock range
-    private Integer minStock;
-    private Integer maxStock;
-
-    // Availability date range
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Date availableFrom;
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Date availableTo;
-
-    // Unit type
-    private String unit;
-
-    // Organic filter
-    private Boolean organic;
+    private String category;
+    private String searchTerm;
+    private Boolean isOrganic;
+    private Integer farmerId;
+    private Double minRating;
 
     // Sorting
-    private String sortBy; // Options: price_asc, price_desc, name_asc, name_desc, date_asc, date_desc
-
-    // Pagination
-    private Integer page = 0;
-    private Integer size = 10;
+    private String sortBy;
 }

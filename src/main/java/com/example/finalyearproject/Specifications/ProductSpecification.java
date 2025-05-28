@@ -15,9 +15,12 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Search by query (name or description)
-            if (filter.getQuery() != null && !filter.getQuery().isEmpty()) {
-                String searchPattern = "%" + filter.getQuery().toLowerCase() + "%";
+            // Always filter by available products (stock > 0)
+            predicates.add(criteriaBuilder.greaterThan(root.get("stock"), 0));
+
+            // Search by searchTerm (name or description)
+            if (filter.getSearchTerm() != null && !filter.getSearchTerm().isEmpty()) {
+                String searchPattern = "%" + filter.getSearchTerm().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), searchPattern)
@@ -42,25 +45,19 @@ public class ProductSpecification {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("price"), filter.getMaxPrice()));
             }
 
-            // Filter by quantity/stock range
-            if (filter.getMinStock() != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("stock"), filter.getMinStock()));
-            }
-            if (filter.getMaxStock() != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("stock"), filter.getMaxStock()));
-            }
-
-            // Filter by availability date
-            if (filter.getAvailableFrom() != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("availableFromDate"), filter.getAvailableFrom()));
-            }
-            if (filter.getAvailableTo() != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("availableFromDate"), filter.getAvailableTo()));
-            }
-
             // Filter by organic
-            if (filter.getOrganic() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("organic"), filter.getOrganic()));
+            if (filter.getIsOrganic() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isOrganic"), filter.getIsOrganic()));
+            }
+
+            // Filter by farmer ID
+            if (filter.getFarmerId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("farmer").get("farmerId"), filter.getFarmerId()));
+            }
+
+            // Filter by minimum rating
+            if (filter.getMinRating() != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("averageRating"), filter.getMinRating()));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

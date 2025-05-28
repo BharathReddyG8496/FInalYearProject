@@ -198,18 +198,7 @@ public class ProductService {
             return ApiResponse.error("Deletion failed", e.getMessage());
         }
     }
-    /**
-     * Get all products
-     */
-    public ApiResponse<List<Product>> getAllProducts() {
-        try {
-            List<Product> products = productRepo.findAll();
-            return ApiResponse.success("Products retrieved successfully", products);
-        } catch (Exception e) {
-            logger.error("Failed to get all products: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to retrieve products", e.getMessage());
-        }
-    }
+
 
     /**
      * Get a product by ID
@@ -351,6 +340,96 @@ public class ProductService {
         }
     }
 
+    /**
+     * Reset the random order (can be called when a user explicitly wants a new shuffle)
+     */
+    public ApiResponse<String> resetRandomOrder() {
+        try {
+            List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
+            sessionManager.setShuffledProductIds(allProductIds);
+            return ApiResponse.success("Random product order has been reset", null);
+        } catch (Exception e) {
+            logger.error("Failed to reset random order: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to reset random order", e.getMessage());
+        }
+    }
+
+    public ApiResponse<Page<Product>> getProducts(ProductFilterDTO filterDTO) {
+        try {
+            // Check if any filters are applied
+            boolean hasFilters = isFilterApplied(filterDTO);
+
+            if (!hasFilters && filterDTO.getSortBy() == null) {
+                // No filters applied - return random shuffled products
+                return getRandomProductsPaginated(filterDTO);
+            } else {
+                // Filters or sorting applied - return filtered products
+                return getFilteredProducts(filterDTO);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get products: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve products", e.getMessage());
+        }
+    }
+
+    private boolean isFilterApplied(ProductFilterDTO filterDTO) {
+        return filterDTO.getMinPrice() != null ||
+                filterDTO.getMaxPrice() != null ||
+                filterDTO.getCategory() != null ||
+                filterDTO.getSearchTerm() != null ||
+                filterDTO.getIsOrganic() != null ||
+                filterDTO.getFarmerId() != null ||
+                filterDTO.getMinRating() != null;
+    }
+
+    private ApiResponse<Page<Product>> getRandomProductsPaginated(ProductFilterDTO filterDTO) {
+        try {
+            // Initialize shuffled product IDs if not done already
+            if (!sessionManager.hasShuffledIds()) {
+                List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
+                sessionManager.setShuffledProductIds(allProductIds);
+            }
+
+            // Get the specific page of product IDs
+            List<Integer> pageProductIds = sessionManager.getPageOfIds(
+                    filterDTO.getPage(),
+                    filterDTO.getSize());
+
+            if (pageProductIds.isEmpty()) {
+                Pageable pageable = PageRequest.of(filterDTO.getPage(), filterDTO.getSize());
+                return ApiResponse.success(
+                        "No more products available",
+                        new PageImpl<>(Collections.emptyList(), pageable, sessionManager.getShuffledProductIds().size())
+                );
+            }
+
+            // Fetch the products
+            List<Product> products = productRepo.findByProductIdsIn(pageProductIds);
+
+            // Sort the products in Java based on the pageProductIds order
+            Map<Integer, Product> productMap = products.stream()
+                    .collect(Collectors.toMap(Product::getProductId, Function.identity()));
+
+            List<Product> orderedProducts = pageProductIds.stream()
+                    .map(productMap::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+            // Create a Page object
+            Pageable pageable = PageRequest.of(filterDTO.getPage(), filterDTO.getSize());
+            Page<Product> productPage = new PageImpl<>(
+                    orderedProducts,
+                    pageable,
+                    sessionManager.getShuffledProductIds().size()
+            );
+
+            return ApiResponse.success("Random products retrieved successfully", productPage);
+        } catch (Exception e) {
+            logger.error("Failed to get random products: {}", e.getMessage(), e);
+            return ApiResponse.error("Failed to retrieve random products", e.getMessage());
+        }
+    }
+
     public ApiResponse<Page<Product>> getFilteredProducts(ProductFilterDTO filterDTO) {
         try {
             // Create the specification from filter
@@ -366,11 +445,10 @@ public class ProductService {
                     case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
                     case "date_asc" -> Sort.by(Sort.Direction.ASC, "availableFromDate");
                     case "date_desc" -> Sort.by(Sort.Direction.DESC, "availableFromDate");
-                    default ->
-                        // Default sort
-                            Sort.by(Sort.Direction.DESC, "productId");
+                    default -> Sort.by(Sort.Direction.DESC, "productId");
                 };
             }
+
             // Create pageable with sort and pagination
             Pageable pageable = PageRequest.of(
                     filterDTO.getPage(),
@@ -381,70 +459,10 @@ public class ProductService {
             // Fetch filtered products
             Page<Product> products = productRepo.findAll(spec, pageable);
 
-            return ApiResponse.success("Products retrieved successfully", products);
+            return ApiResponse.success("Filtered products retrieved successfully", products);
         } catch (Exception e) {
             logger.error("Failed to filter products: {}", e.getMessage(), e);
             return ApiResponse.error("Failed to filter products", e.getMessage());
-        }
-    }
-
-    public ApiResponse<Page<Product>> getRandomProductsPaginated(Pageable pageable) {
-        try {
-            // Initialize shuffled product IDs if not done already
-            if (!sessionManager.hasShuffledIds()) {
-                List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
-                sessionManager.setShuffledProductIds(allProductIds);
-            }
-
-            // Get the specific page of product IDs
-            List<Integer> pageProductIds = sessionManager.getPageOfIds(
-                    pageable.getPageNumber(),
-                    pageable.getPageSize());
-
-            if (pageProductIds.isEmpty()) {
-                return ApiResponse.success(
-                        "No more products available",
-                        new PageImpl<>(Collections.emptyList(), pageable, sessionManager.getShuffledProductIds().size())
-                );
-            }
-
-            // Fetch the products (without trying to sort in SQL)
-            List<Product> products = productRepo.findByProductIdsIn(pageProductIds);
-
-            // Sort the products in Java based on the pageProductIds order
-            Map<Integer, Product> productMap = products.stream()
-                    .collect(Collectors.toMap(Product::getProductId, Function.identity()));
-
-            List<Product> orderedProducts = pageProductIds.stream()
-                    .map(productMap::get)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            // Create a Page object
-            Page<Product> productPage = new PageImpl<>(
-                    orderedProducts,
-                    pageable,
-                    sessionManager.getShuffledProductIds().size()
-            );
-
-            return ApiResponse.success("Random products retrieved successfully", productPage);
-        } catch (Exception e) {
-            logger.error("Failed to get random products: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to retrieve random products", e.getMessage());
-        }
-    }
-
-    /**
-     * Reset the random order (can be called when a user explicitly wants a new shuffle)
-     */
-    public ApiResponse<String> resetRandomOrder() {
-        try {
-            List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
-            sessionManager.setShuffledProductIds(allProductIds);
-            return ApiResponse.success("Random product order has been reset", null);
-        } catch (Exception e) {
-            logger.error("Failed to reset random order: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to reset random order", e.getMessage());
         }
     }
 

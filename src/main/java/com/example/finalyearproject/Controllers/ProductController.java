@@ -150,33 +150,6 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/random")
-    public ResponseEntity<ApiResponse<Page<Product>>> getRandomProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        ApiResponse<Page<Product>> response = productService.getRandomProductsPaginated(pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get random products for home page (consumer only) with pagination
-     */
-    @GetMapping
-    @PreAuthorize("hasAuthority('CONSUMER')")
-    public ResponseEntity<ApiResponse<Page<Product>>> getRandomProductsForConsumer(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
-
-
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        ApiResponse<Page<Product>> response = productService.getRandomProductsPaginated(pageable);
-
-        return ResponseEntity.ok(response);
-    }
-
     /**
      * Reset the random ordering (useful for forcing a new shuffle)
      */
