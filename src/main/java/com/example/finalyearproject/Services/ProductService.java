@@ -283,6 +283,25 @@ public class ProductService {
             return ApiResponse.error("Failed to retrieve product", e.getMessage());
         }
     }
+    // Add this method to ProductService
+    public ProductResponseUtility mapToProductResponseUtility(Product product) {
+        return ProductResponseUtility.builder()
+                .productId(product.getProductId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getStock())
+                .category(product.getCategory().toString())
+                .unit(product.getUnit())
+                .harvestDate(product.getHarvestDate())
+                .availableDate(product.getAvailableFromDate())
+                .isOrganic(product.isOrganic())
+                .imageUrls(product.getImages().stream()
+                        .map(ProductImage::getFilePath)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
 
 
 

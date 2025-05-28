@@ -17,15 +17,17 @@ public class OrderItemResponseDTO {
     private int orderItemId;
     private int productId;
     private String productName;
-    private String productImage;  // Main product image URL
+    private String productImage;
     private double unitPrice;
     private int quantity;
-    private Unit unit;  // ADD THIS FIELD
+    private Unit unit;
     private double totalPrice;
     private FulfillmentStatus status;
     private String farmerName;
+    private int farmerId;  // ADD THIS
     private Date deliveredAt;
     private Date confirmedAt;
     private String deliveryNotes;
     private boolean canBeRated;
+    private boolean canDonate;  // ADD THIS - true if order is delivered/confirmed
 }

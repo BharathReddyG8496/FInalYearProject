@@ -37,4 +37,31 @@ public interface OrderItemRepo extends JpaRepository<OrderItem, Integer> {
             "AND oi.orderItemId IN :itemIds")
     List<OrderItem> findByOrderIdAndItemIds(@Param("orderId") int orderId,
                                             @Param("itemIds") List<Integer> itemIds);
+
+    // Get farmers from completed orders for a consumer
+    @Query("SELECT DISTINCT f.farmerId, " +
+            "CONCAT(f.firstName, ' ', f.lastName) as farmerName, " +
+            "f.farmerEmail, " +
+            "f.averageRating, " +
+            "COUNT(DISTINCT oi.orderItemId) as orderCount, " +
+            "SUM(oi.unitPrice) as totalAmount " +
+            "FROM OrderItem oi " +
+            "JOIN oi.product p " +
+            "JOIN p.farmer f " +
+            "JOIN oi.order o " +
+            "WHERE o.consumer.consumerId = :consumerId " +
+            "AND (oi.fulfillmentStatus = 'DELIVERED' OR oi.fulfillmentStatus = 'CONFIRMED') " +
+            "GROUP BY f.farmerId, f.firstName, f.lastName, f.farmerEmail, f.averageRating")
+    List<Object[]> findFarmersFromCompletedOrders(@Param("consumerId") int consumerId);
+
+    // Check if consumer has completed orders from a specific farmer
+    @Query("SELECT CASE WHEN COUNT(oi) > 0 THEN true ELSE false END " +
+            "FROM OrderItem oi " +
+            "JOIN oi.product p " +
+            "JOIN oi.order o " +
+            "WHERE o.consumer.consumerId = :consumerId " +
+            "AND p.farmer.farmerId = :farmerId " +
+            "AND (oi.fulfillmentStatus = 'DELIVERED' OR oi.fulfillmentStatus = 'CONFIRMED')")
+    boolean existsCompletedOrderFromFarmer(@Param("consumerId") int consumerId,
+                                           @Param("farmerId") int farmerId);
 }

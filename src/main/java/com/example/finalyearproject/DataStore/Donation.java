@@ -1,8 +1,7 @@
 package com.example.finalyearproject.DataStore;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,31 +9,45 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "donations")
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Donation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int DonationId;
+    private Long donationId;
 
-    @NotNull(message = "Donation amount cannot be null")
-    @Positive(message = "Donation amount must be positive")
-    private double Amount;
-
-
-    private LocalDateTime DonationDate;
-
-    @NotBlank(message = "Payment method cannot be blank")
-    @Size(max = 50, message = "Payment method cannot exceed 50 characters")
-    private String PaymentMethod;
-
-    @ManyToOne()
-    @JsonBackReference("consumer-donations")
+    @ManyToOne
+    @JoinColumn(name = "consumer_id", nullable = false)
     private Consumer consumer;
 
-    @ManyToOne()
-    @JsonBackReference("farmer-donations")
+    @ManyToOne
+    @JoinColumn(name = "farmer_id", nullable = false)
     private Farmer farmer;
 
+    @Column(nullable = false)
+    private Double amount;
+
+    @Column(length = 500)
+    private String message;  // Optional message from consumer to farmer
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DonationStatus status = DonationStatus.PENDING;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime completedAt;
+
+    // Payment related fields
+    @Column(unique = true)
+    private String transactionId;  // From payment gateway
+
+    private String paymentMethod;  // UPI, Card, etc.
+
+    @Column(length = 500)
+    private String failureReason;  // In case of failure
 }

@@ -1,8 +1,8 @@
 package com.example.finalyearproject.Utility;
 
+import com.example.finalyearproject.DataStore.Unit;
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.cglib.core.Local;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,7 +16,9 @@ public class ProductResponseUtility {
     private double price;
     private int stock;
     private String category;
+    private Unit unit;  // ADD THIS FIELD
     private LocalDate harvestDate;
     private LocalDate availableDate;
+    private boolean isOrganic;  // Also add this for completeness
     private List<String> imageUrls;
 }

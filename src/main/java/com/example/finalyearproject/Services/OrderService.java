@@ -613,34 +613,25 @@ public class OrderService {
     /**
      * Helper method to create a filtered copy of an order with only specific items
      */
-    private Order createFilteredOrder(Order originalOrder, Set<OrderItem> itemsToInclude) {
+    private Order createFilteredOrder(Order originalOrder, Set<OrderItem> farmerItems) {
         Order filteredOrder = new Order();
-
-        // Copy order metadata
         filteredOrder.setOrderId(originalOrder.getOrderId());
         filteredOrder.setOrderStatus(originalOrder.getOrderStatus());
+        filteredOrder.setTotalAmount(farmerItems.stream()
+                .mapToDouble(OrderItem::getUnitPrice)
+                .sum());
         filteredOrder.setCreatedAt(originalOrder.getCreatedAt());
         filteredOrder.setUpdatedAt(originalOrder.getUpdatedAt());
         filteredOrder.setPlacedAt(originalOrder.getPlacedAt());
-
-        // Copy shipping info
         filteredOrder.setShippingAddress(originalOrder.getShippingAddress());
         filteredOrder.setShippingCity(originalOrder.getShippingCity());
         filteredOrder.setShippingState(originalOrder.getShippingState());
         filteredOrder.setShippingZip(originalOrder.getShippingZip());
 
-        // Calculate total only for included items
-        double total = itemsToInclude.stream()
-                .mapToDouble(item -> item.getQuantity() * (item.getUnitPrice() / item.getQuantity()))
-                .sum();
-
-        filteredOrder.setTotalAmount(total);
-
-        // Set items (only those for this farmer)
-        filteredOrder.setOrderItems(itemsToInclude);
-
-        // Copy consumer info (but not cart/payment details)
+        // IMPORTANT: Include consumer information
         filteredOrder.setConsumer(originalOrder.getConsumer());
+
+        filteredOrder.setOrderItems(farmerItems);
 
         return filteredOrder;
     }

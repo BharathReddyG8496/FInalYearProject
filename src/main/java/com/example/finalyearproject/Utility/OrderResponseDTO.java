@@ -17,5 +17,9 @@ public class OrderResponseDTO {
     private String shippingCity;
     private String shippingState;
     private String shippingZip;
+
+    // Add consumer information
+    private ConsumerInfoDTO consumer;
+
     private List<OrderItemResponseDTO> items;
 }

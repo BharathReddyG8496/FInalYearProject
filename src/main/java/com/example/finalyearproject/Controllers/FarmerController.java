@@ -130,19 +130,7 @@ public class FarmerController {
 
         if (productsResponse.getData() != null) {
             Set<ProductResponseUtility> formattedProducts = productsResponse.getData().stream()
-                    .map(product -> ProductResponseUtility.builder()
-                            .productId(product.getProductId())
-                            .description(product.getDescription())
-                            .stock(product.getStock())
-                            .price(product.getPrice())
-                            .name(product.getName())
-                            .category(product.getCategory().toString())
-                            .harvestDate(product.getHarvestDate())
-                            .availableDate(product.getAvailableFromDate())
-                            .imageUrls(product.getImages().stream()
-                                    .map(ProductImage::getFilePath)
-                                    .collect(Collectors.toList()))
-                            .build())
+                    .map(product -> productService.mapToProductResponseUtility(product))
                     .collect(Collectors.toSet());
 
             return ResponseEntity.ok(ApiResponse.success("Products retrieved successfully", formattedProducts));
@@ -154,18 +142,23 @@ public class FarmerController {
 
     @GetMapping("product/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<Product>> getProduct(
+    public ResponseEntity<ApiResponse<ProductResponseUtility>> getProduct(
             @PathVariable int productId,
             Authentication authentication) {
 
         String farmerEmail = authentication.getName();
-        ApiResponse<Product> productByIdAndFarmerEmail = productService.getProductByIdAndFarmerEmail(productId, farmerEmail);
+        ApiResponse<Product> productResponse = productService.getProductByIdAndFarmerEmail(productId, farmerEmail);
 
-        if (productByIdAndFarmerEmail.getData() != null) {
-            return ResponseEntity.ok(productByIdAndFarmerEmail);
+        if (productResponse.getData() != null) {
+            ProductResponseUtility formattedProduct = productService.mapToProductResponseUtility(productResponse.getData());
+            return ResponseEntity.ok(ApiResponse.success("Product retrieved successfully", formattedProduct));
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(productByIdAndFarmerEmail);
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ApiResponse.error("Product not found", productResponse.getMessage())
+        );
     }
+
 
     @GetMapping("/ratings/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")

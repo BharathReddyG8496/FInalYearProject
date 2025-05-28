@@ -20,24 +20,23 @@ public class ChatConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_CHAT_MESSAGES, groupId = "chat-group")
     public void consumeChatMessage(ChatMessageDTO message) {
         try {
-            logger.info("Received message from Kafka: {}", message.getId());
-            logger.info("Message content: '{}', From: {}, To: {}",
-                    message.getContent(), message.getSenderEmail(), message.getReceiverEmail());
+            logger.info("Received message from Kafka: ID={}, From={}, To={}",
+                    message.getId(), message.getSenderEmail(), message.getReceiverEmail());
 
-            // Send to user-specific destination
+            // Also send back to sender for confirmation (optional)
             messagingTemplate.convertAndSendToUser(
-                    message.getReceiverEmail(),
+                    message.getSenderEmail(),
                     "/queue/messages",
                     message);
 
-            // Also broadcast to a public topic for debugging
-            messagingTemplate.convertAndSend(
-                    "/topic/public.messages",
-                    message);
+            // Send to a session-specific topic for both users
+            String sessionTopic = "/topic/chat." + message.getChatSessionId();
+            messagingTemplate.convertAndSend(sessionTopic, message);
 
-            logger.info("Message forwarded to destinations");
+            logger.info("Message forwarded to WebSocket destinations");
+
         } catch (Exception e) {
-            logger.error("Error processing message: {}", e.getMessage(), e);
+            logger.error("Error processing Kafka message: {}", e.getMessage(), e);
         }
     }
 }

@@ -19,9 +19,12 @@ public class OrderSummaryDTO {
     private String shippingState;
     private String shippingZip;
 
+    // Add consumer information
+    private ConsumerInfoDTO consumer;
+
     // Summary counts of items by status
     private Map<String, Integer> itemCounts; // e.g., {"PENDING": 2, "DELIVERED": 1}
 
-    // Add this new field
+    // List of items
     private List<OrderItemSummaryDTO> items;
 }
