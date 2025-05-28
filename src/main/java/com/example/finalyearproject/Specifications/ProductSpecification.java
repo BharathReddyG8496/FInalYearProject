@@ -18,12 +18,12 @@ public class ProductSpecification {
             // Always filter by available products (stock > 0)
             predicates.add(criteriaBuilder.greaterThan(root.get("stock"), 0));
 
-            // Search by searchTerm (name or description)
+            // Search by searchTerm (name or description) - Using case-insensitive LIKE without lower()
             if (filter.getSearchTerm() != null && !filter.getSearchTerm().isEmpty()) {
-                String searchPattern = "%" + filter.getSearchTerm().toLowerCase() + "%";
+                String searchPattern = "%" + filter.getSearchTerm() + "%";
                 predicates.add(criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), searchPattern)
+                        criteriaBuilder.like(criteriaBuilder.upper(root.get("name").as(String.class)), searchPattern.toUpperCase()),
+                        criteriaBuilder.like(criteriaBuilder.upper(root.get("description").as(String.class)), searchPattern.toUpperCase())
                 ));
             }
 
