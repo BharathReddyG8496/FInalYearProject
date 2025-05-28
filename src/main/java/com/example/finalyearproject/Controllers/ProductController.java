@@ -1,15 +1,14 @@
 package com.example.finalyearproject.Controllers;
 
+import com.example.finalyearproject.DataStore.CategoryType;
 import com.example.finalyearproject.DataStore.Product;
 import com.example.finalyearproject.DataStore.ProductImage;
+import com.example.finalyearproject.DataStore.Unit;
 import com.example.finalyearproject.Services.ProductImageService;
 import com.example.finalyearproject.Services.ProductService;
 import com.example.finalyearproject.Utility.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("product")
@@ -37,12 +39,12 @@ public class ProductController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<Product>> addProduct(
+    public ResponseEntity<ApiResponse<ProductResponseDTO>> addProduct(
             @ModelAttribute @Valid ProductUtility productUtility,
             Authentication authentication) {
 
         String farmerEmail = authentication.getName();
-        ApiResponse<Product> response = productService.AddProduct(productUtility, farmerEmail);
+        ApiResponse<ProductResponseDTO> response = productService.AddProduct(productUtility, farmerEmail);
 
         if (response.getData() != null) {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -70,18 +72,32 @@ public class ProductController {
 
     @PutMapping("/{productId}")
     @PreAuthorize("hasAuthority('FARMER')")
-    public ResponseEntity<ApiResponse<Product>> updateProduct(
+    public ResponseEntity<ApiResponse<ProductResponseDTO>> updateProduct(
             @PathVariable int productId,
             @RequestBody @Valid ProductUpdateDTO productUpdateDTO,
             Authentication authentication) {
 
         String farmerEmail = authentication.getName();
-        ApiResponse<Product> response = productService.updateProduct(productUpdateDTO, productId, farmerEmail);
+        ApiResponse<ProductResponseDTO> response = productService.updateProduct(productUpdateDTO, productId, farmerEmail);
 
         if (response.getData() != null) {
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    @GetMapping("/units")
+    public ResponseEntity<ApiResponse<List<UnitDTO>>> getAvailableUnits() {
+        try{
+            List<UnitDTO> units = Arrays.stream(Unit.values())
+                    .map(unit -> new UnitDTO(unit.name(), unit.getDisplayName()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success("Available units retrieved successfully", units));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve units", e.getMessage()));
         }
     }
 
@@ -139,15 +155,28 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<CategoryDTO>>> getAvailableCategories() {
+        try {
+            List<CategoryDTO> categories = Arrays.stream(CategoryType.values())
+                    .map(category -> new CategoryDTO(
+                            category.name(),
+                            category.getDisplayName()
+                    ))
+                    .collect(Collectors.toList());
 
-    @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<Page<Product>>> filterProducts(ProductFilterDTO filterDTO) {
-        ApiResponse<Page<Product>> response = productService.getFilteredProducts(filterDTO);
-        if (response.getData() != null) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.ok(ApiResponse.success("Available categories retrieved successfully", categories));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve categories", e.getMessage()));
         }
+    }
+    // Helper method to capitalize first letter and lowercase the rest
+    private String capitalizeFirstLetter(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 
     /**

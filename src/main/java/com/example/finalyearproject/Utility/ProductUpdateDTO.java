@@ -1,6 +1,7 @@
 package com.example.finalyearproject.Utility;
 
 import com.example.finalyearproject.DataStore.CategoryType;
+import com.example.finalyearproject.DataStore.Unit;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -27,6 +28,10 @@ public class ProductUpdateDTO {
 
     @NotNull(message = "Category is required")
     private CategoryType category;
+
+    // NEW FIELD: Unit
+    @NotNull(message = "Unit is required")
+    private Unit unit;
 
     @NotNull(message = "Harvest Date is required")
     private LocalDate harvestDate;

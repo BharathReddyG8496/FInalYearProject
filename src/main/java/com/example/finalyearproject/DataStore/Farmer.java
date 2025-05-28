@@ -94,7 +94,7 @@ public class Farmer implements UserDetails {
         if(firstName == null || lastName == null) {
             return null;
         }
-        return firstName.concat(lastName);
+        return firstName.concat(" " +lastName);
     }
 
     @Override

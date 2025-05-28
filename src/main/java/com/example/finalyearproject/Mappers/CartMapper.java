@@ -46,6 +46,11 @@ public class CartMapper {
         dto.setFarmerName(item.getFarmerName());
         dto.setFieldChange(item.getFieldChange());
 
+        // ADD UNIT
+        if (item.getProduct() != null) {
+            dto.setUnit(item.getProduct().getUnit());
+        }
+
         return dto;
     }
 }

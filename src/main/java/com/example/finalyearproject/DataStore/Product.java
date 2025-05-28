@@ -55,6 +55,11 @@ public class Product {
     @JsonIgnore
     private boolean isOrganic;
 
+    // NEW FIELD: Unit
+    @NotNull(message = "Unit is required")
+    @Enumerated(EnumType.STRING)
+    private Unit unit;
+
     @ManyToOne
     @JoinColumn(name = "farmer_id", nullable = false)
     @JsonBackReference("farmer-product")

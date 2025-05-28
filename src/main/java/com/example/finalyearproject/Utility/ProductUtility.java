@@ -12,23 +12,32 @@ import java.time.LocalDate;
 
 @Data
 @Builder
-@NoArgsConstructor  // Add this
+@NoArgsConstructor
 @AllArgsConstructor
 public class ProductUtility {
 
     @NotNull
     @NotBlank(message = " product name should not be null ")
     private String name;
+
     @NotNull
     @NotBlank(message = "description should not be null")
     private String description;
+
     @NotNull
     private double price;
+
     @NotNull
     private int stock;
+
     @NotNull
     @NotBlank(message = "category should not be null")
     private String category;
+
+    // NEW FIELD: Unit
+    @NotNull
+    @NotBlank(message = "unit should not be null")
+    private String unit;
 
     @NotNull(message = "Harvest Date is required")
     private LocalDate harvestDate;
@@ -39,7 +48,6 @@ public class ProductUtility {
     @NotNull(message = "Organic field is required")
     private boolean isOrganic;
 
-    // Exclude images from being mapped to your domain entity directly
     @NotNull
     private MultipartFile[] images;
 }

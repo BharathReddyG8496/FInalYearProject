@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -332,6 +333,38 @@ public class FarmerController {
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(response.getMessage(), response.getErrors()));
+        }
+    }
+
+    @GetMapping("/units")
+    @PreAuthorize("hasAuthority('FARMER')")
+    public ResponseEntity<ApiResponse<List<UnitDTO>>> getAvailableUnits() {
+        try {
+            List<UnitDTO> units = Arrays.stream(Unit.values())
+                    .map(unit -> new UnitDTO(unit.name(), unit.getDisplayName()))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success("Available units retrieved successfully", units));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve units", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<CategoryDTO>>> getAvailableCategories() {
+        try {
+            List<CategoryDTO> categories = Arrays.stream(CategoryType.values())
+                    .map(category -> new CategoryDTO(
+                            category.name(),
+                            category.getDisplayName()
+                    ))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success("Available categories retrieved successfully", categories));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve categories", e.getMessage()));
         }
     }
 

@@ -1,6 +1,5 @@
 package com.example.finalyearproject.Mappers;
 
-
 import com.example.finalyearproject.DataStore.FulfillmentStatus;
 import com.example.finalyearproject.DataStore.Order;
 import com.example.finalyearproject.DataStore.OrderItem;
@@ -82,6 +81,8 @@ public class OrderMapper {
                     itemDto.setStatus(item.getFulfillmentStatus());
                     itemDto.setTotalPrice(item.getUnitPrice());
                     itemDto.setQuantity(item.getQuantity());
+                    // ADD UNIT
+                    itemDto.setUnit(item.getProduct() != null ? item.getProduct().getUnit() : null);
                     return itemDto;
                 })
                 .collect(Collectors.toList());
@@ -90,6 +91,7 @@ public class OrderMapper {
 
         return dto;
     }
+
     public OrderItemResponseDTO toOrderItemResponseDTO(OrderItem item) {
         if (item == null) {
             return null;
@@ -104,6 +106,7 @@ public class OrderMapper {
                         item.getProduct().getImages().iterator().next().getFilePath() : null)
                 .unitPrice(item.getQuantity() > 0 ? item.getUnitPrice() / item.getQuantity() : 0)
                 .quantity(item.getQuantity())
+                .unit(item.getProduct() != null ? item.getProduct().getUnit() : null)  // ADD THIS
                 .totalPrice(item.getUnitPrice())
                 .status(item.getFulfillmentStatus())
                 .farmerName(item.getProduct() != null && item.getProduct().getFarmer() != null ?

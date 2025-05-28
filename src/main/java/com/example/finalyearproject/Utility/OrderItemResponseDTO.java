@@ -1,6 +1,7 @@
 package com.example.finalyearproject.Utility;
 
 import com.example.finalyearproject.DataStore.FulfillmentStatus;
+import com.example.finalyearproject.DataStore.Unit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class OrderItemResponseDTO {
     private String productImage;  // Main product image URL
     private double unitPrice;
     private int quantity;
+    private Unit unit;  // ADD THIS FIELD
     private double totalPrice;
     private FulfillmentStatus status;
     private String farmerName;

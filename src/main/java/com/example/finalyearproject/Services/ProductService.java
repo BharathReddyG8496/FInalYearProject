@@ -43,7 +43,7 @@ public class ProductService {
     private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
 
     @Transactional
-    public ApiResponse<Product> AddProduct(ProductUtility prodUtil, String farmerEmail) {
+    public ApiResponse<ProductResponseDTO> AddProduct(ProductUtility prodUtil, String farmerEmail) {
         try {
             Product product = new Product();
             product.setName(prodUtil.getName());
@@ -54,11 +54,20 @@ public class ProductService {
             product.setAvailableFromDate(prodUtil.getAvailableFromDate());
             product.setOrganic(prodUtil.isOrganic());
 
+            // Handle category
             try {
                 CategoryType category = CategoryType.valueOf(prodUtil.getCategory().toUpperCase());
                 product.setCategory(category);
             } catch (IllegalArgumentException e) {
                 return ApiResponse.error("Product creation failed", "Invalid category: " + prodUtil.getCategory());
+            }
+
+            // NEW: Handle unit
+            try {
+                Unit unit = Unit.valueOf(prodUtil.getUnit().toUpperCase());
+                product.setUnit(unit);
+            } catch (IllegalArgumentException e) {
+                return ApiResponse.error("Product creation failed", "Invalid unit: " + prodUtil.getUnit());
             }
 
             Farmer farmer = farmerRepo.findByFarmerEmail(farmerEmail);
@@ -76,19 +85,18 @@ public class ProductService {
                     productImageService.uploadProductImages(storedProduct.getProductId(), prodUtil.getImages());
                 } catch (Exception e) {
                     logger.error("Failed to upload product images: {}", e.getMessage(), e);
-                    // Continue with product creation even if image upload fails
                 }
             }
-
-            return ApiResponse.success("Product added successfully", storedProduct);
+            // Convert to DTO before returning
+            ProductResponseDTO responseDTO = convertToResponseDTO(storedProduct);
+            return ApiResponse.success("Product added successfully", responseDTO);
         } catch (Exception e) {
             logger.error("Failed to add product: {}", e.getMessage(), e);
             return ApiResponse.error("Product creation failed", e.getMessage());
         }
     }
-
     @Transactional
-    public ApiResponse<Product> updateProduct(ProductUpdateDTO dto, int productId, String farmerEmail) {
+    public ApiResponse<ProductResponseDTO> updateProduct(ProductUpdateDTO dto, int productId, String farmerEmail) {
         try {
             // Retrieve the existing product
             Product existingProduct = productRepo.findProductByProductId(productId);
@@ -117,6 +125,7 @@ public class ProductService {
             existingProduct.setPrice(dto.getPrice());
             existingProduct.setStock(dto.getStock());
             existingProduct.setCategory(dto.getCategory());
+            existingProduct.setUnit(dto.getUnit()); // NEW: Update unit
             existingProduct.setHarvestDate(dto.getHarvestDate());
             existingProduct.setAvailableFromDate(dto.getAvailableFromDate());
             existingProduct.setOrganic(dto.isOrganic());
@@ -159,8 +168,10 @@ public class ProductService {
             }
 
             // Return updated product
+            // Return updated product as DTO
             Product updatedProduct = productRepo.findProductByProductId(productId);
-            return ApiResponse.success("Product updated successfully", updatedProduct);
+            ProductResponseDTO responseDTO = convertToResponseDTO(updatedProduct);
+            return ApiResponse.success("Product updated successfully", responseDTO);
         } catch (Exception e) {
             logger.error("Failed to update product: {}", e.getMessage(), e);
             return ApiResponse.error("Update failed", e.getMessage());
@@ -200,36 +211,19 @@ public class ProductService {
     }
 
 
-    /**
-     * Get a product by ID
-     */
-    public ApiResponse<Product> getProductById(int productId) {
+    // Update getProductById method
+    public ApiResponse<ProductResponseDTO> getProductById(int productId) {
         try {
             Optional<Product> productOpt = productRepo.findById(productId);
-            return productOpt.map(product -> ApiResponse.success("Product retrieved successfully", product)).orElseGet(() -> ApiResponse.error("Product not found", "No product found with ID: " + productId));
+            if (productOpt.isPresent()) {
+                ProductResponseDTO responseDTO = convertToResponseDTO(productOpt.get());
+                return ApiResponse.success("Product retrieved successfully", responseDTO);
+            } else {
+                return ApiResponse.error("Product not found", "No product found with ID: " + productId);
+            }
         } catch (Exception e) {
             logger.error("Failed to get product by ID: {}", e.getMessage(), e);
             return ApiResponse.error("Failed to retrieve product", e.getMessage());
-        }
-    }
-
-    /**
-     * Get products by category
-     */
-    public ApiResponse<List<Product>> getProductsByCategory(String categoryStr) {
-        try {
-            CategoryType category;
-            try {
-                category = CategoryType.valueOf(categoryStr.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                return ApiResponse.error("Invalid category", "Category not found: " + categoryStr);
-            }
-
-            List<Product> products = productRepo.findByCategory(category);
-            return ApiResponse.success("Products retrieved successfully", products);
-        } catch (Exception e) {
-            logger.error("Failed to get products by category: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to retrieve products", e.getMessage());
         }
     }
 
@@ -291,22 +285,6 @@ public class ProductService {
     }
 
 
-    /**
-     * Search products by name
-     */
-    public ApiResponse<List<Product>> searchProductsByName(String query) {
-        try {
-            if (query == null || query.trim().isEmpty()) {
-                return ApiResponse.error("Invalid search", "Search query cannot be empty");
-            }
-
-            List<Product> products = productRepo.findByNameContainingIgnoreCase(query);
-            return ApiResponse.success("Search results retrieved successfully", products);
-        } catch (Exception e) {
-            logger.error("Failed to search products: {}", e.getMessage(), e);
-            return ApiResponse.error("Failed to search products", e.getMessage());
-        }
-    }
 
     /**
      * Get featured products
@@ -353,18 +331,15 @@ public class ProductService {
             return ApiResponse.error("Failed to reset random order", e.getMessage());
         }
     }
-
-    public ApiResponse<Page<Product>> getProducts(ProductFilterDTO filterDTO) {
+    // Update getProducts method (for paginated results)
+    public ApiResponse<Page<ProductResponseDTO>> getProducts(ProductFilterDTO filterDTO) {
         try {
-            // Check if any filters are applied
             boolean hasFilters = isFilterApplied(filterDTO);
 
             if (!hasFilters && filterDTO.getSortBy() == null) {
-                // No filters applied - return random shuffled products
-                return getRandomProductsPaginated(filterDTO);
+                return getRandomProductsPaginatedWithDTO(filterDTO);
             } else {
-                // Filters or sorting applied - return filtered products
-                return getFilteredProducts(filterDTO);
+                return getFilteredProductsWithDTO(filterDTO);
             }
         } catch (Exception e) {
             logger.error("Failed to get products: {}", e.getMessage(), e);
@@ -382,15 +357,14 @@ public class ProductService {
                 filterDTO.getMinRating() != null;
     }
 
-    private ApiResponse<Page<Product>> getRandomProductsPaginated(ProductFilterDTO filterDTO) {
+    // New method for random products with DTO
+    private ApiResponse<Page<ProductResponseDTO>> getRandomProductsPaginatedWithDTO(ProductFilterDTO filterDTO) {
         try {
-            // Initialize shuffled product IDs if not done already
             if (!sessionManager.hasShuffledIds()) {
                 List<Integer> allProductIds = productRepo.findAllAvailableProductIds();
                 sessionManager.setShuffledProductIds(allProductIds);
             }
 
-            // Get the specific page of product IDs
             List<Integer> pageProductIds = sessionManager.getPageOfIds(
                     filterDTO.getPage(),
                     filterDTO.getSize());
@@ -403,21 +377,18 @@ public class ProductService {
                 );
             }
 
-            // Fetch the products
             List<Product> products = productRepo.findByProductIdsIn(pageProductIds);
-
-            // Sort the products in Java based on the pageProductIds order
             Map<Integer, Product> productMap = products.stream()
                     .collect(Collectors.toMap(Product::getProductId, Function.identity()));
 
-            List<Product> orderedProducts = pageProductIds.stream()
+            List<ProductResponseDTO> orderedProducts = pageProductIds.stream()
                     .map(productMap::get)
                     .filter(Objects::nonNull)
+                    .map(this::convertToResponseDTO)
                     .collect(Collectors.toList());
 
-            // Create a Page object
             Pageable pageable = PageRequest.of(filterDTO.getPage(), filterDTO.getSize());
-            Page<Product> productPage = new PageImpl<>(
+            Page<ProductResponseDTO> productPage = new PageImpl<>(
                     orderedProducts,
                     pageable,
                     sessionManager.getShuffledProductIds().size()
@@ -430,13 +401,12 @@ public class ProductService {
         }
     }
 
-    public ApiResponse<Page<Product>> getFilteredProducts(ProductFilterDTO filterDTO) {
+    // New method for filtered products with DTO
+    public ApiResponse<Page<ProductResponseDTO>> getFilteredProductsWithDTO(ProductFilterDTO filterDTO) {
         try {
-            // Create the specification from filter
             Specification<Product> spec = ProductSpecification.getFilteredProducts(filterDTO);
-
-            // Create sort based on the sortBy parameter
             Sort sort = Sort.unsorted();
+
             if (filterDTO.getSortBy() != null) {
                 sort = switch (filterDTO.getSortBy()) {
                     case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
@@ -449,21 +419,44 @@ public class ProductService {
                 };
             }
 
-            // Create pageable with sort and pagination
-            Pageable pageable = PageRequest.of(
-                    filterDTO.getPage(),
-                    filterDTO.getSize(),
-                    sort
-            );
-
-            // Fetch filtered products
+            Pageable pageable = PageRequest.of(filterDTO.getPage(), filterDTO.getSize(), sort);
             Page<Product> products = productRepo.findAll(spec, pageable);
 
-            return ApiResponse.success("Filtered products retrieved successfully", products);
+            Page<ProductResponseDTO> productDTOPage = products.map(this::convertToResponseDTO);
+
+            return ApiResponse.success("Filtered products retrieved successfully", productDTOPage);
         } catch (Exception e) {
             logger.error("Failed to filter products: {}", e.getMessage(), e);
             return ApiResponse.error("Failed to filter products", e.getMessage());
         }
+    }
+
+
+    private ProductResponseDTO convertToResponseDTO(Product product) {
+        return ProductResponseDTO.builder()
+                .productId(product.getProductId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getStock())
+                .harvestDate(product.getHarvestDate())
+                .availableFromDate(product.getAvailableFromDate())
+                .isOrganic(product.isOrganic())
+                .category(product.getCategory())
+                .unit(product.getUnit())
+                .averageRating(product.getAverageRating())
+                .ratingCount(product.getRatingCount())
+                // Farmer details
+                .farmerId(product.getFarmer().getFarmerId())
+                .farmerName(product.getFarmer().getFirstName() + " " + product.getFarmer().getLastName())
+                .farmerEmail(product.getFarmer().getFarmerEmail())
+                .farmerPhone(product.getFarmer().getFarmerPhone())
+                .farmerRating(product.getFarmer().getAverageRating())
+                // Images
+                .images(product.getImages().stream()
+                        .map(img -> new ProductImageDTO(img.getId(), img.getFilename(), img.getFilePath()))
+                        .collect(Collectors.toSet()))
+                .build();
     }
 
 }
