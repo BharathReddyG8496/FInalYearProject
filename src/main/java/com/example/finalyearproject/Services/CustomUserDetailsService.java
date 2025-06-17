@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -33,6 +34,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         Optional<Consumer> consumerOpt = this.consumerRepo.findConsumerByConsumerEmail(userEmail);
         if (consumerOpt.isPresent()) {
             Consumer consumer = consumerOpt.get();
+//            List<String> collect = consumer.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+            //The above is in case if the consumer has multiple roles, then use the user builder, in the .roles
+            //convert the list to an array of string(String[]) and pass it.
             return new User(
                     consumer.getConsumerEmail(),
                     consumer.getPassword(),
