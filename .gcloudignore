@@ -1,0 +1,36 @@
+# Java/Maven files
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+src/test/
+
+# Node modules if any
+node_modules/
+
+# Keep only essential files for build
+!pom.xml
+!src/main/

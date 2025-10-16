@@ -19,8 +19,8 @@ public interface ChatSessionRepo extends JpaRepository<ChatSession, Long> {
             "(cs.consumerEmail = :email2 AND cs.farmerEmail = :email1)")
     Optional<ChatSession> findByParticipants(@Param("email1") String email1, @Param("email2") String email2);
 
-    @Query("SELECT cs FROM ChatSession cs WHERE " +
-            "cs.consumerEmail = :consumerEmail AND cs.farmerEmail = :farmerEmail")
+
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.consumerEmail = :consumerEmail AND cs.farmerEmail = :farmerEmail")
     Optional<ChatSession> findByConsumerAndFarmer(
             @Param("consumerEmail") String consumerEmail,
             @Param("farmerEmail") String farmerEmail);

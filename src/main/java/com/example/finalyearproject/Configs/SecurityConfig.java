@@ -5,6 +5,7 @@ import com.example.finalyearproject.Security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -45,13 +46,13 @@ public class SecurityConfig{
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        // Add these lines to allow WebSocket connections
+                        // these lines are to allow WebSocket connections
                         .requestMatchers("/ws-chat/**").permitAll()  // Allow WebSocket endpoint
                         .requestMatchers("/ws-chat").permitAll()     // Base endpoint
                         .requestMatchers("/ws-chat/info").permitAll() // SockJS info endpoint
                         .requestMatchers("/ws-chat/websocket").permitAll() // SockJS websocket
 
-                        // Your existing configuration follows
+                        // The existing configuration follows
                         .requestMatchers("/products/**","/order/**","/checkout/**","/rating/**").authenticated()
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/test").authenticated()

@@ -14,14 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -314,7 +312,7 @@ public class FarmerController {
             Authentication authentication) {
 
         String farmerEmail = authentication.getName();
-        ApiResponse<List<OrderItem>> response = orderService.cancelOrderItems(
+       ApiResponse<List<OrderItem>> response = orderService.cancelOrderItems(
                 orderId, updateDTO.getOrderItemIds(), farmerEmail, "FARMER", updateDTO.getNotes());
 
         if (response.isSuccess()) {

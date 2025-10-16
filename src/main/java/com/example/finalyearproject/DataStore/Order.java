@@ -89,7 +89,7 @@ public class Order {
         // Only include non-cancelled items in total
         this.totalAmount = orderItems.stream()
                 .filter(item -> item.getFulfillmentStatus() != FulfillmentStatus.CANCELLED)
-                .mapToDouble(item -> item.getQuantity() * item.getUnitPrice())
+                .mapToDouble(OrderItem::getUnitPrice) // Directly sum the already calculated unitPrice
                 .sum();
     }
 

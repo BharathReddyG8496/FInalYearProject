@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.GrantedAuthority;
@@ -68,7 +69,7 @@ public class PublicController {
 
             // Get the role (first authority)
             String role = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)  // Use lambda instead of method reference
+                    .map(GrantedAuthority::getAuthority)
                     .findFirst()
                     .orElse("UNKNOWN");
 
@@ -77,13 +78,13 @@ public class PublicController {
             JwtResponse response = JwtResponse.builder()
                     .jwtToken(token)
                     .userName(userDetails.getUsername())
-                    .role(role) // Include role in response
+                    .role(role)
                     .build();
 
             return ResponseEntity.ok(ApiResponse.success("Login successful", response));
         } catch (BadCredentialsException e) {
             return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
+                    .status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Authentication failed", "Invalid username or password"));
         }
     }
@@ -93,7 +94,9 @@ public class PublicController {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userName, password);
         try {
-            manager.authenticate(authentication);
+             manager.authenticate(authentication);
+
+
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Invalid username or password");
         }
@@ -128,7 +131,7 @@ public class PublicController {
 
                 // Get the role (first authority)
                 String role = userDetails.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)  // Use lambda instead of method reference
+                        .map(GrantedAuthority::getAuthority)
                         .findFirst()
                         .orElse("UNKNOWN");
 
@@ -137,18 +140,18 @@ public class PublicController {
                 JwtResponse response = JwtResponse.builder()
                         .jwtToken(token)
                         .userName(userName)
-                        .role(role) // Include role in response
+                        .role(role)
                         .build();
 
                 return ResponseEntity.ok(ApiResponse.success("Login successful", response));
             } catch (Exception e) {
                 return ResponseEntity
-                        .status(HttpStatus.UNAUTHORIZED)
+                        .status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("Authentication failed", "Farmer not found with provided email"));
             }
         } catch (BadCredentialsException e) {
             return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
+                    .status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error("Authentication failed", "Invalid username or password"));
         }
     }

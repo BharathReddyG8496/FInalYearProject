@@ -46,8 +46,8 @@ public class ChatService {
         try {
             logger.info("Sending message from {} to {}", senderEmail, receiverEmail);
 
-            // Get or create chat session
-            ChatSession session = getOrCreateChatSession(senderEmail, receiverEmail, senderRole);
+            // Get or create chat session (search both directions, ignore product)
+            ChatSession session = getOrCreateChatSessionBidirectional(senderEmail, receiverEmail, senderRole);
 
             // Create and save message
             ChatMessage message = productId != null ?
@@ -226,29 +226,40 @@ public class ChatService {
      * Get or create a chat session
      */
     private ChatSession getOrCreateChatSession(String email1, String email2, String senderRole) {
-        // Determine consumer and farmer email based on sender role
-        String consumerEmail, farmerEmail;
-        if ("CONSUMER".equals(senderRole)) {
-            consumerEmail = email1;
-            farmerEmail = email2;
-        } else {
-            consumerEmail = email2;
-            farmerEmail = email1;
-        }
-
-        // Try to find existing session
-        Optional<ChatSession> existingSession = chatSessionRepo.findByConsumerAndFarmer(consumerEmail, farmerEmail);
-
-        if (existingSession.isPresent()) {
-            return existingSession.get();
-        }
-
-        // Create new session if none exists
-        ChatSession newSession = new ChatSession();
-        newSession.setConsumerEmail(consumerEmail);
-        newSession.setFarmerEmail(farmerEmail);
-        return chatSessionRepo.save(newSession);
+        // Deprecated: replaced by getOrCreateChatSessionBidirectional
+        return null;
     }
+
+    /**
+     * Get or create a chat session between two users, regardless of direction, for a product (if provided)
+     */
+private ChatSession getOrCreateChatSessionBidirectional(String email1, String email2, String senderRole) {
+    // Normalize emails to lower case and trim spaces to avoid duplicate sessions
+    String consumerEmail, farmerEmail;
+    if ("CONSUMER".equals(senderRole)) {
+        consumerEmail = email1 == null ? null : email1.trim().toLowerCase();
+        farmerEmail = email2 == null ? null : email2.trim().toLowerCase();
+    } else {
+        consumerEmail = email2 == null ? null : email2.trim().toLowerCase();
+        farmerEmail = email1 == null ? null : email1.trim().toLowerCase();
+    }
+
+    logger.info("Looking for chat session between consumer: {} and farmer: {}", consumerEmail, farmerEmail);
+
+    // Try to find existing session
+    Optional<ChatSession> existingSession = chatSessionRepo.findByConsumerAndFarmer(consumerEmail, farmerEmail);
+    if (existingSession.isPresent()) {
+        logger.info("Found existing chat session: {}", existingSession.get().getId());
+        return existingSession.get();
+    }
+
+    // Create new session if none exists
+    logger.info("No existing session found. Creating new chat session for consumer: {} and farmer: {}", consumerEmail, farmerEmail);
+    ChatSession newSession = new ChatSession();
+    newSession.setConsumerEmail(consumerEmail);
+    newSession.setFarmerEmail(farmerEmail);
+    return chatSessionRepo.save(newSession);
+}
 
     /**
      * Update unread counts for all sessions a user participates in
@@ -370,8 +381,8 @@ public class ChatService {
             // Get farmer's email
             String farmerEmail = product.getFarmer().getFarmerEmail();
 
-            // Get or create chat session
-            ChatSession session = getOrCreateChatSession(consumerEmail, farmerEmail, "CONSUMER");
+            // Get or create chat session (search both directions, ignore product)
+            ChatSession session = getOrCreateChatSessionBidirectional(consumerEmail, farmerEmail, "CONSUMER");
 
             // Send initial message about the product
             ChatMessage message = ChatMessage.create(
